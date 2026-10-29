@@ -1,0 +1,2584 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockPro - ERP, Gestion de Stocks & Caisse V4.2</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Html5-QRCode (Scanner Code-barres) -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased min-h-screen md:h-screen flex flex-col overflow-x-hidden md:overflow-hidden">
+
+    <!-- ÉCRAN DE CONNEXION / AUTHENTIFICATION -->
+    <div id="auth-screen" class="fixed inset-0 bg-gradient-to-br from-blue-900 to-indigo-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8">
+            <div class="text-center mb-8">
+                <div class="bg-blue-600 text-white w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900">StockPro</h1>
+                <p class="text-sm text-gray-500 mt-1">Votre application ERP Professionnelle</p>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Identifiant</label>
+                    <input type="text" id="login-user" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="ex: admin">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+                    <!-- Rendu obligatoire -->
+                    <input type="password" id="login-pass" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200 shadow-md">
+                    Se connecter
+                </button>
+            </form>
+
+            <div class="mt-6 border-t pt-4 text-center">
+                <p class="text-xs text-gray-500 mb-3 font-medium">Connexion rapide (Démo) :</p>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button onclick="fastLogin('admin', 'Administrateur')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-2 px-3 rounded-lg font-medium transition">🚀 Admin</button>
+                    <button onclick="fastLogin('gestionnaire', 'Gestionnaire')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-2 px-3 rounded-lg font-medium transition">📦 Gestionnaire</button>
+                    <button onclick="fastLogin('agent-stock', 'Agent Stock')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-2 px-3 rounded-lg font-medium transition">📦 Agent Stock</button>
+                    <button onclick="fastLogin('consultation', 'Consultation')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-2 px-3 rounded-lg font-medium transition">📦 Consultation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPLICATION PRINCIPALE -->
+    <div id="app-container" class="flex flex-col md:flex-row h-screen overflow-hidden hidden">
+        
+        <!-- OVERLAY MOBILE -->
+        <div id="sidebar-overlay" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/50 z-30 md:hidden hidden"></div>
+
+        <!-- BARRE LATÉRALE (SIDEBAR) -->
+        <aside id="app-sidebar" class="w-72 md:w-64 bg-slate-900 text-white flex flex-col shadow-xl fixed md:static inset-y-0 left-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+            <div class="p-5 flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-blue-600 p-2.5 rounded-xl text-white font-bold text-xl shadow-md">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold tracking-wide">StockPro</span>
+                        <span class="block text-xs text-blue-400 font-medium">ERP & Caisse V4.2</span>
+                    </div>
+                </div>
+                <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-400 hover:text-white p-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- PROFIL & CONTEXTE SÉLECTIONNÉ -->
+            <div class="p-4 mx-3 my-3 bg-slate-800/80 rounded-xl border border-slate-700/50 space-y-2">
+                <div class="flex items-center space-x-3">
+                    <div id="user-avatar" class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-xs">A</div>
+                    <div class="overflow-hidden flex-1">
+                        <p id="user-name-display" class="text-xs font-semibold truncate">Admin Systèmes</p>
+                        <p id="user-role-display" class="text-[10px] text-blue-400 truncate">Administrateur</p>
+                    </div>
+                </div>
+                <!-- Sélecteurs Multi-Entreprises & Multi-Sites -->
+                <div class="pt-2 border-t border-slate-700/60 space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between">
+                        <label class="text-[10px] text-slate-400 uppercase font-semibold">Entreprise :</label>
+                        <button onclick="openSettingsModal()" class="text-blue-400 hover:text-blue-300 admin-only text-[10px]"><i class="fa-solid fa-gear"></i> Gérer</button>
+                    </div>
+                    <select id="app-company-select" onchange="changeCompany()" class="w-full bg-slate-900 text-white rounded px-2 py-1 border border-slate-700 focus:outline-none text-xs">
+                    </select>
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase font-semibold">Site/Magasin :</label>
+                        <select id="app-site-select" onchange="changeSite()" class="w-full bg-slate-900 text-emerald-400 font-semibold rounded px-2 py-1 border border-slate-700 focus:outline-none text-xs">
+                        </select>
+                    </div>
+                </div>
+                <button onclick="logout()" class="mt-2 w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold py-1 px-3 rounded transition flex items-center justify-center space-x-1">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span>Déconnexion</span>
+                </button>
+            </div>
+
+            <!-- NAVIGATION -->
+            <nav class="flex-1 px-3 space-y-1 overflow-y-auto text-xs sm:text-sm">
+                <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition bg-blue-600 text-white shadow-md">
+                    <i class="fa-solid fa-chart-pie w-5"></i><span>Tableau de bord</span>
+                </a>
+                <a href="#" onclick="switchTab('pos')" id="nav-pos" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-cash-register w-5 text-emerald-400"></i><span>Caisse (POS)</span>
+                </a>
+                <a href="#" onclick="switchTab('catalog')" id="nav-catalog" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-box-archive w-5"></i><span>Catalogue Produits</span>
+                </a>
+                <a href="#" onclick="switchTab('orders')" id="nav-orders" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-truck-ramp-box w-5 text-amber-400"></i><span>Commandes & Réceptions</span>
+                </a>
+                <a href="#" onclick="switchTab('contacts')" id="nav-contacts" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-address-book w-5"></i><span>Clients & Fournisseurs</span>
+                </a>
+                <a href="#" onclick="switchTab('movements')" id="nav-movements" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-right-left w-5"></i><span>Mouvements & Transferts</span>
+                </a>
+                <a href="#" onclick="switchTab('sales')" id="nav-sales" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-receipt w-5"></i><span>Ventes & Marges</span>
+                </a>
+                <a href="#" onclick="switchTab('reports')" id="nav-reports" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-chart-column w-5 text-indigo-400"></i><span>Rapports de Stocks</span>
+                </a>
+                <a href="#" onclick="switchTab('users')" id="nav-users" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-users-gear w-5"></i><span>Utilisateurs & Droits</span>
+                </a>
+                <a href="#" onclick="switchTab('logs')" id="nav-logs" class="flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i class="fa-solid fa-clock-rotate-left w-5"></i><span>Historique / Logs</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- CONTENU PRINCIPAL -->
+        <main class="flex-1 flex flex-col overflow-hidden w-full">
+            <!-- HEADER SUPÉRIEUR -->
+            <header class="bg-white border-b h-16 flex items-center justify-between px-4 sm:px-8 shadow-sm shrink-0">
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden text-gray-700 hover:text-blue-600 p-2">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <h2 id="page-title" class="text-base sm:text-xl font-bold text-gray-800 truncate">Tableau de bord</h2>
+                </div>
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <!-- Bouton Alerte de Stock interactif -->
+                    <button onclick="goToAlertCatalog()" id="header-stock-alert-btn" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-600 text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm items-center space-x-1.5 hover:bg-rose-500/20 cursor-pointer">
+                        <i class="fa-solid fa-triangle-exclamation animate-bounce"></i>
+                        <span id="header-stock-alert-text">0 Alerte stock</span>
+                    </button>
+                    <button onclick="openBarcodeScanner()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5" title="Scanner un code-barres">
+                        <i class="fa-solid fa-barcode text-base"></i><span class="hidden sm:inline">Scanner</span>
+                    </button>
+                    <button onclick="openTransferModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5 manager-action">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i><span class="hidden sm:inline">Transfert Site</span>
+                    </button>
+                    <button onclick="sendWhatsAppStockAlert()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5">
+                        <i class="fa-brands fa-whatsapp text-base"></i><span class="hidden sm:inline">WhatsApp</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- ZONE D'AFFICHAGE DES ONGLETS -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-50">
+
+                <!-- 1. TABLEAU DE BORD -->
+                <div id="tab-dashboard" class="space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-sm font-medium text-gray-500">Valeur Stock (Achat)</span>
+                                <div class="bg-blue-50 text-blue-600 p-3 rounded-xl"><i class="fa-solid fa-wallet text-lg"></i></div>
+                            </div>
+                            <h3 id="kpi-val-achat" class="text-xl sm:text-2xl font-bold text-gray-900">0 FCFA</h3>
+                            <span class="text-xs text-gray-400 mt-1 block">Coût total d'acquisition</span>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-sm font-medium text-gray-500">Valeur Stock (Vente)</span>
+                                <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl"><i class="fa-solid fa-tags text-lg"></i></div>
+                            </div>
+                            <h3 id="kpi-val-vente" class="text-xl sm:text-2xl font-bold text-gray-900">0 FCFA</h3>
+                            <span class="text-xs text-emerald-600 font-semibold mt-1 block" id="kpi-marge-potentielle">Marge potentielle: 0%</span>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-sm font-medium text-gray-500">Chiffre d'Affaires</span>
+                                <div class="bg-indigo-50 text-indigo-600 p-3 rounded-xl"><i class="fa-solid fa-chart-line text-lg"></i></div>
+                            </div>
+                            <h3 id="kpi-total-ca" class="text-xl sm:text-2xl font-bold text-gray-900">0 FCFA</h3>
+                            <span class="text-xs text-gray-400 mt-1 block">Ventes enregistrées</span>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-sm font-medium text-gray-500">Bénéfice Réalisé</span>
+                                <div class="bg-purple-50 text-purple-600 p-3 rounded-xl"><i class="fa-solid fa-hand-holding-dollar text-lg"></i></div>
+                            </div>
+                            <h3 id="kpi-total-benefice" class="text-xl sm:text-2xl font-bold text-gray-900">0 FCFA</h3>
+                            <span class="text-xs text-purple-600 font-semibold mt-1 block">Marge nette globale</span>
+                        </div>
+                    </div>
+
+                    <!-- BLOCS URGENTS & DERNIERS MOUVEMENTS -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-base font-bold text-gray-800 flex items-center space-x-2">
+                                    <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+                                    <span>Réapprovisionnements Urgents</span>
+                                </h3>
+                                <button onclick="sendWhatsAppStockAlert()" class="text-xs text-emerald-600 font-semibold hover:underline flex items-center space-x-1">
+                                    <i class="fa-brands fa-whatsapp"></i><span>Alerter Fournisseur</span>
+                                </button>
+                            </div>
+                            <div id="urgent-reorder-list" class="space-y-3"></div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-base font-bold text-gray-800 flex items-center space-x-2">
+                                    <i class="fa-solid fa-clock-rotate-left text-blue-500"></i>
+                                    <span>Derniers Mouvements de Stock</span>
+                                </h3>
+                                <button onclick="switchTab('movements')" class="text-xs text-blue-600 font-semibold hover:underline">Voir tout</button>
+                            </div>
+                            <div id="recent-movements-list" class="space-y-3"></div>
+                        </div>
+                    </div>
+
+                    <!-- GRAPHIQUES -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">Stock par produit</h3>
+                            <div class="h-72"><canvas id="stockChart"></canvas></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                <h3 class="text-sm sm:text-base font-bold text-gray-800">📈 Chiffre d'Affaires par Date</h3>
+                                <div class="flex items-center space-x-1 text-xs">
+                                    <input type="date" id="filter-ca-start" onchange="updateDashboard()" class="px-2 py-1 border rounded-lg focus:outline-none bg-gray-50 text-gray-600 text-xs">
+                                    <span class="text-gray-400">-</span>
+                                    <input type="date" id="filter-ca-end" onchange="updateDashboard()" class="px-2 py-1 border rounded-lg focus:outline-none bg-gray-50 text-gray-600 text-xs">
+                                    <button onclick="resetCaFilters()" class="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg text-gray-600 font-medium"><i class="fa-solid fa-rotate-left"></i></button>
+                                </div>
+                            </div>
+                            <div class="h-64"><canvas id="salesByDateChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. MODULE CAISSE (POS) -->
+                <div id="tab-pos" class="space-y-6 hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 space-y-4">
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between gap-4">
+                                <div class="relative flex-1">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400"></i>
+                                    <input type="text" id="pos-search" oninput="renderPosCatalog()" placeholder="Rechercher par nom, SKU..." class="w-full pl-10 pr-4 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <button onclick="openBarcodeScanner()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2.5 rounded-xl font-medium"><i class="fa-solid fa-barcode"></i></button>
+                            </div>
+                            <div id="pos-product-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[480px] overflow-y-auto p-1"></div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between h-[550px] lg:h-[600px]">
+                            <div>
+                                <div class="flex justify-between items-center mb-4 border-b pb-3">
+                                    <h3 class="font-bold text-gray-800 flex items-center space-x-2">
+                                        <i class="fa-solid fa-cash-register text-emerald-600"></i>
+                                        <span>Panier Caisse (POS)</span>
+                                    </h3>
+                                    <button onclick="clearPosCart()" class="text-xs text-red-500 hover:underline font-medium">Vider</button>
+                                </div>
+                                <div id="pos-cart-items" class="space-y-3 overflow-y-auto max-h-[320px] pr-1">
+                                    <p class="text-xs text-gray-400 text-center py-12">Aucun article dans le panier</p>
+                                </div>
+                            </div>
+
+                            <div class="border-t pt-4 space-y-3">
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-gray-500">Articles:</span>
+                                    <span id="pos-cart-count" class="font-semibold text-gray-800">0</span>
+                                </div>
+                                <div class="flex justify-between items-center text-lg font-bold text-gray-900">
+                                    <span>Total:</span>
+                                    <span id="pos-cart-total" class="text-emerald-600">0 FCFA</span>
+                                </div>
+                                <button onclick="checkoutPosSale()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition shadow-md flex items-center justify-center space-x-2 manager-action">
+                                    <i class="fa-solid fa-check-circle"></i><span>Valider la Vente</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. CATALOGUE PRODUITS -->
+                <div id="tab-catalog" class="space-y-6 hidden">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex flex-wrap items-center gap-2 flex-1 w-full sm:w-auto">
+                            <input type="text" id="search-product" oninput="renderCatalog()" placeholder="Rechercher nom, SKU..." class="px-3 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 text-sm flex-1 min-w-[150px]">
+                            <select id="filter-category" onchange="renderCatalog()" class="px-3 py-2 border rounded-xl text-sm bg-gray-50">
+                                <option value="">Toutes catégories</option>
+                            </select>
+                            <select id="filter-status" onchange="renderCatalog()" class="px-3 py-2 border rounded-xl text-sm bg-gray-50">
+                                <option value="">Tous les états</option>
+                                <option value="Normal">Normal</option>
+                                <option value="Stock Faible">Stock Faible</option>
+                                <option value="Rupture">Rupture</option>
+                            </select>
+                            <div class="flex items-center space-x-2 bg-gray-50 border px-3 py-2 rounded-xl">
+                                <i class="fa-solid fa-coins text-amber-500"></i>
+                                <select id="currency-select" onchange="changeCurrency()" class="bg-transparent text-sm font-medium cursor-pointer">
+                                    <option value="XAF" selected>FCFA (XAF)</option>
+                                    <option value="EUR">Euros (€)</option>
+                                    <option value="USD">Dollars ($)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 w-full sm:w-auto">
+                            <span id="total-products-count-badge" class="bg-blue-50 text-blue-700 px-3 py-2 rounded-xl text-xs font-bold border border-blue-100">Total : 0 produits</span>
+                            <button onclick="exportProductsCSV()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-2.5 rounded-xl transition flex items-center space-x-1" title="Exporter en CSV">
+                                <i class="fa-solid fa-file-export text-emerald-600"></i><span>Export</span>
+                            </button>
+                            <button onclick="document.getElementById('import-csv-input').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-2.5 rounded-xl transition flex items-center space-x-1 manager-action">
+                                <i class="fa-solid fa-file-import text-blue-600"></i><span>Import CSV</span>
+                            </button>
+                            <input type="file" id="import-csv-input" accept=".csv" class="hidden" onchange="importCSV(event)">
+                            
+                            <button onclick="openProductModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center space-x-1.5 manager-action">
+                                <i class="fa-solid fa-plus"></i><span>Nouveau Produit</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[850px]">
+                                <thead>
+                                    <tr class="bg-gray-50/70 border-b text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        <th class="py-4 px-4">Photo/Produit</th>
+                                        <th class="py-4 px-3">SKU/Réf</th>
+                                        <th class="py-4 px-3">Site/Unité</th>
+                                        <th class="py-4 px-3">Catégorie</th>
+                                        <th class="py-4 px-3">Prix Achat</th>
+                                        <th class="py-4 px-3">Prix Vente</th>
+                                        <th class="py-4 px-3">Qté Dispo</th>
+                                        <th class="py-4 px-3">Statut</th>
+                                        <th class="py-4 px-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="catalog-table-body" class="divide-y text-sm text-gray-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. COMMANDES ET RÉCEPTIONS -->
+                <div id="tab-orders" class="space-y-6 hidden">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center flex-wrap gap-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Bons de Commande Fournisseurs</h3>
+                            <p class="text-xs text-gray-500">Suivi des commandes et réceptions partielles / complètes</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span id="total-orders-count-badge" class="bg-amber-50 text-amber-800 px-3 py-2 rounded-xl text-xs font-bold border border-amber-100">Total : 0 commandes</span>
+                            <button onclick="openOrderModal()" class="bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition shadow-sm flex items-center space-x-2 manager-action">
+                                <i class="fa-solid fa-cart-plus"></i><span>Nouveau Bon de Commande</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[750px]">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase">
+                                        <th class="py-4 px-6">N° Commande</th>
+                                        <th class="py-4 px-4">Fournisseur</th>
+                                        <th class="py-4 px-4">Site Destination</th>
+                                        <th class="py-4 px-4">Articles commandés</th>
+                                        <th class="py-4 px-4">Statut</th>
+                                        <th class="py-4 px-6 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body" class="divide-y text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. CLIENTS & FOURNISSEURS -->
+                <div id="tab-contacts" class="space-y-6 hidden">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap justify-between items-center gap-4">
+                        <div class="flex items-center space-x-3">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Base de données Tiers</h3>
+                                <p class="text-xs text-gray-500">Gestion des Clients et Fournisseurs</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span id="count-clients-badge" class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg text-xs font-bold">Clients : 0</span>
+                                <span id="count-suppliers-badge" class="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg text-xs font-bold">Fournisseurs : 0</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3 w-full sm:w-auto">
+                            <select id="filter-contact-type" onchange="renderContacts()" class="px-3 py-1.5 border rounded-xl text-xs bg-gray-50 font-medium">
+                                <option value="">Tous les tiers</option>
+                                <option value="Client">Clients</option>
+                                <option value="Fournisseur">Fournisseurs</option>
+                            </select>
+                            <div class="relative flex-1 sm:w-48">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="text" id="search-contact" oninput="renderContacts()" placeholder="Rechercher..." class="w-full pl-8 pr-3 py-1.5 border rounded-xl text-xs focus:outline-none">
+                            </div>
+                            <button onclick="openContactModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm flex items-center space-x-1.5 manager-action">
+                                <i class="fa-solid fa-user-plus"></i><span>Nouveau</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[700px]">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase">
+                                        <th class="py-4 px-6">Type</th>
+                                        <th class="py-4 px-4">Nom / Raison Sociale</th>
+                                        <th class="py-4 px-4">Téléphone / WhatsApp</th>
+                                        <th class="py-4 px-4">E-mail</th>
+                                        <th class="py-4 px-6 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contacts-table-body" class="divide-y text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. MOUVEMENTS & TRANSFERTS -->
+                <div id="tab-movements" class="space-y-6 hidden">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap justify-between items-center gap-4">
+                        <div class="flex items-center space-x-3 flex-wrap gap-2">
+                            <h3 class="text-lg font-bold text-gray-800">Historique des Flux & Transferts</h3>
+                            <div class="flex items-center space-x-1.5 text-xs font-bold">
+                                <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-100" id="badge-count-entrees">Entrées : 0</span>
+                                <span class="bg-red-50 text-red-700 px-2.5 py-1 rounded-lg border border-red-100" id="badge-count-sorties">Sorties : 0</span>
+                                <span class="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-100" id="badge-count-transferts">Transferts : 0</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <select id="filter-mov-type" onchange="renderMovements()" class="px-3 py-1.5 border rounded-xl text-xs font-medium focus:outline-none bg-gray-50">
+                                <option value="">Tous les types</option>
+                                <option value="ENTREE">Entrées</option>
+                                <option value="SORTIE">Sorties</option>
+                                <option value="TRANSFERT">Transferts inter-sites</option>
+                            </select>
+                            <button onclick="exportMovementsCSV()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center space-x-1.5">
+                                <i class="fa-solid fa-file-csv text-emerald-600"></i><span>Exporter CSV</span>
+                            </button>
+                            <button onclick="openMovementModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-xl transition shadow-sm manager-action">
+                                <i class="fa-solid fa-plus mr-1"></i> Nouveau Flux
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[700px]">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase">
+                                        <th class="py-4 px-6">Date / Heure</th>
+                                        <th class="py-4 px-4">Type</th>
+                                        <th class="py-4 px-4">Produit</th>
+                                        <th class="py-4 px-4">Quantité</th>
+                                        <th class="py-4 px-4">Auteur / Site</th>
+                                        <th class="py-4 px-6">Motif / Commentaire</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="movements-table-body" class="divide-y text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. VENTES & MARGES -->
+                <div id="tab-sales" class="space-y-6 hidden">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Gestion des Ventes & Marges</h3>
+                            <p class="text-xs text-gray-500">Calcul du chiffre d'affaires et des bénéfices</p>
+                        </div>
+                        <button onclick="openSaleModal()" class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm flex items-center space-x-2 manager-action">
+                            <i class="fa-solid fa-receipt"></i><span>Vente manuelle</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[750px]">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase">
+                                        <th class="py-4 px-6">Date</th>
+                                        <th class="py-4 px-4">Produit</th>
+                                        <th class="py-4 px-4">Qté</th>
+                                        <th class="py-4 px-4">Prix Unitaire</th>
+                                        <th class="py-4 px-4">CA</th>
+                                        <th class="py-4 px-4">Marge</th>
+                                        <th class="py-4 px-6 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sales-table-body" class="divide-y text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. RAPPORTS DE STOCKS -->
+                <div id="tab-reports" class="space-y-6 hidden">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                        <div class="flex flex-wrap justify-between items-center gap-4 border-b pb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Contrôle & Rapports sur les Stocks</h3>
+                                <p class="text-xs text-gray-500">Inventaire détaillé triable par article et catégorie</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <select id="report-site-filter" onchange="renderReports()" class="px-3 py-1.5 border rounded-xl text-xs bg-gray-50">
+                                    <option value="">Tous les sites</option>
+                                    <option value="Dépôt Principal">Dépôt Principal</option>
+                                    <option value="Boutique Centre">Boutique Centre</option>
+                                </select>
+                                <button onclick="exportDetailedInventoryCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-sm flex items-center space-x-1">
+                                    <i class="fa-solid fa-file-excel"></i><span>Extraction Inventaire CSV</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+                                <span class="text-xs font-semibold text-indigo-700 uppercase">Coût Moyen du Stock</span>
+                                <p id="report-avg-cost" class="text-xl font-bold text-indigo-900 mt-1">0 FCFA</p>
+                            </div>
+                            <div class="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                                <span class="text-xs font-semibold text-blue-700 uppercase">Volume Total d'Articles</span>
+                                <p id="report-total-units" class="text-xl font-bold text-blue-900 mt-1">0 Unités</p>
+                            </div>
+                            <div class="p-4 bg-purple-50 border border-purple-100 rounded-xl">
+                                <span class="text-xs font-semibold text-purple-700 uppercase">Valeur Totale Marchande</span>
+                                <p id="report-total-val" class="text-xl font-bold text-purple-900 mt-1">0 FCFA</p>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="font-bold text-sm text-gray-800">Inventaire Détaillé par Article & Catégorie</h4>
+                                <input type="text" id="report-search" oninput="renderReports()" placeholder="Filtrer l'inventaire..." class="px-3 py-1 border rounded-lg text-xs w-56">
+                            </div>
+                            <div class="bg-white rounded-xl border overflow-hidden">
+                                <div class="overflow-x-auto max-h-80">
+                                    <table class="w-full text-left border-collapse text-xs">
+                                        <thead class="bg-gray-50 sticky top-0 border-b">
+                                            <tr>
+                                                <th class="py-2.5 px-4 font-semibold text-gray-600">Catégorie</th>
+                                                <th class="py-2.5 px-4 font-semibold text-gray-600">Article</th>
+                                                <th class="py-2.5 px-3 font-semibold text-gray-600">SKU</th>
+                                                <th class="py-2.5 px-3 font-semibold text-gray-600">Site</th>
+                                                <th class="py-2.5 px-3 font-semibold text-gray-600">Qté</th>
+                                                <th class="py-2.5 px-3 font-semibold text-gray-600">P. Achat</th>
+                                                <th class="py-2.5 px-4 font-semibold text-gray-600 text-right">Valeur Totale</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="detailed-inventory-tbody" class="divide-y"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 9. UTILISATEURS -->
+                <div id="tab-users" class="space-y-6 hidden">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Utilisateurs & Droits d'accès</h3>
+                            <p class="text-xs text-gray-500">Gestion des rôles et des autorisations</p>
+                        </div>
+                        <button onclick="openUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm">
+                            <i class="fa-solid fa-user-plus mr-1"></i> Nouvel utilisateur
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[700px]">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase">
+                                        <th class="py-4 px-6">Utilisateur</th>
+                                        <th class="py-4 px-4">Identifiant</th>
+                                        <th class="py-4 px-4">Rôle</th>
+                                        <th class="py-4 px-4">Droits</th>
+                                        <th class="py-4 px-4">Statut</th>
+                                        <th class="py-4 px-6 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body" class="divide-y text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 10. LOGS -->
+                <div id="tab-logs" class="space-y-6 hidden">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-1">Journal d'Activité Système</h3>
+                        <p class="text-xs text-gray-500 mb-4">Traçabilité complète des actions</p>
+                        <div class="space-y-2" id="logs-container"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALE PARAMÈTRAGE ENTREPRISES & SITES -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl my-auto space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-gray-800"><i class="fa-solid fa-gear text-blue-600 mr-2"></i>Gestion des Entreprises & Sites</h3>
+                <button onclick="closeModal('settings-modal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Ajouter une Entreprise :</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="new-company-input" placeholder="ex: Entreprise C (SARL)" class="flex-1 px-3 py-2 border rounded-lg focus:outline-none">
+                        <button onclick="addNewCompany()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-semibold">Ajouter</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Ajouter un Site / Magasin :</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="new-site-input" placeholder="ex: Entrepôt Sud" class="flex-1 px-3 py-2 border rounded-lg focus:outline-none">
+                        <button onclick="addNewSite()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-semibold">Ajouter</button>
+                    </div>
+                </div>
+                <div class="pt-2 border-t">
+                    <p class="text-[11px] text-gray-500 mb-2 font-medium">Listes actuelles configurées (Modification / Suppression) :</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-50 p-3 rounded-xl border">
+                            <span class="font-bold text-gray-700 block mb-1">Entreprises</span>
+                            <ul id="settings-company-list" class="space-y-1 text-gray-600"></ul>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-xl border">
+                            <span class="font-bold text-gray-700 block mb-1">Sites / Magasins</span>
+                            <ul id="settings-site-list" class="space-y-1 text-gray-600"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE CONSULTATION BON DE COMMANDE -->
+    <div id="view-order-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl my-auto space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-gray-800 text-base"><i class="fa-solid fa-file-invoice text-amber-600 mr-2"></i>Détails du Bon de Commande</h3>
+                <button onclick="closeModal('view-order-modal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="view-order-content" class="space-y-3 text-xs sm:text-sm"></div>
+            <div class="flex justify-end pt-3 border-t">
+                <button type="button" onclick="closeModal('view-order-modal')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 font-medium text-xs">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE RÉCEPTION (PARTIELLE OU COMPLÈTE) -->
+    <div id="receive-order-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl my-auto space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-gray-800 text-base"><i class="fa-solid fa-box-open text-emerald-600 mr-2"></i>Réception de la Commande <span id="rec-order-id-title"></span></h3>
+                <button onclick="closeModal('receive-order-modal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="receive-order-form" onsubmit="submitOrderReception(event)" class="space-y-4 text-xs sm:text-sm">
+                <input type="hidden" id="rec-order-id">
+                <p class="text-xs text-gray-500">Indiquez ci-dessous les quantités effectivement reçues pour chaque article (réception partielle ou totale).</p>
+                <div class="max-h-60 overflow-y-auto border rounded-xl p-2 bg-gray-50">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="border-b text-gray-500 pb-1">
+                                <th class="py-1 px-2">Produit</th>
+                                <th class="py-1 px-2 text-center">Commandé</th>
+                                <th class="py-1 px-2 text-center">Déjà reçu</th>
+                                <th class="py-1 px-2 text-center">Qté à recevoir maintenant</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receive-items-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="flex justify-end space-x-3 pt-3 border-t">
+                    <button type="button" onclick="closeModal('receive-order-modal')" class="px-4 py-2 border rounded-xl text-gray-600 font-medium">Annuler</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-sm">Valider la Réception</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL SCANNER CODE-BARRES -->
+    <div id="scanner-modal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-gray-800 flex items-center space-x-2">
+                    <i class="fa-solid fa-barcode text-blue-600"></i>
+                    <span>Scanner un Code-barres</span>
+                </h3>
+                <button onclick="closeModal('scanner-modal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="qr-reader" class="w-full rounded-xl overflow-hidden bg-black"></div>
+            <p class="text-xs text-gray-500 text-center">Pointez la caméra vers le code-barres.</p>
+        </div>
+    </div>
+
+    <!-- MODAL PRODUIT -->
+    <div id="product-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl my-auto">
+            <h3 id="product-modal-title" class="text-lg font-bold text-gray-800 mb-4">Ajouter un produit</h3>
+            <form id="product-form" onsubmit="saveProduct(event)" class="space-y-3 text-xs sm:text-sm">
+                <input type="hidden" id="prod-id">
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">Nom du produit</label>
+                    <input type="text" id="prod-name" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">SKU / Code-barres</label>
+                        <input type="text" id="prod-sku" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">Catégorie</label>
+                        <input type="text" id="prod-cat" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">Site initial</label>
+                        <select id="prod-site" class="w-full px-3 py-2 border rounded-xl focus:outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">Unité de vente</label>
+                        <select id="prod-unit" class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                            <option value="Unité">À l'Unité (Pcs)</option>
+                            <option value="Kg">Au Poids (Kg)</option>
+                            <option value="Groupe / Cartons">En Groupe / Cartons</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">Prix Achat</label>
+                        <input type="number" step="any" id="prod-p-achat" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">Prix Vente</label>
+                        <input type="number" step="any" id="prod-p-vente" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">Qté Initiale</label>
+                        <input type="number" id="prod-qty" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">Seuil Alerte Stock Bas</label>
+                    <input type="number" id="prod-min" value="5" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">Photo du produit</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="file" id="prod-photo-input" accept="image/*" onchange="previewProductPhoto(event)" class="text-xs">
+                        <input type="hidden" id="prod-photo-base64">
+                        <div id="photo-preview-container" class="w-12 h-12 rounded-lg border bg-gray-100 flex items-center justify-center overflow-hidden">
+                            <i class="fa-solid fa-image text-gray-400 text-base"></i>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">Notes / Description</label>
+                    <textarea id="prod-note" rows="2" class="w-full px-3 py-2 border rounded-xl focus:outline-none" placeholder="Remarques..."></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-3 border-t">
+                    <button type="button" onclick="closeModal('product-modal')" class="px-4 py-2 border rounded-xl text-gray-600 font-medium">Annuler</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL TRANSFERT INTER-SITES -->
+    <div id="transfer-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl my-auto">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Transfert de Stock Inter-Sites</h3>
+            <form id="transfer-form" onsubmit="saveTransfer(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Produit à transférer</label>
+                    <select id="trans-product" required class="w-full px-4 py-2 border rounded-xl focus:outline-none"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Site Origine</label>
+                        <select id="trans-from" required class="w-full px-3 py-2 border rounded-xl text-xs bg-gray-50"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Site Destination</label>
+                        <select id="trans-to" required class="w-full px-3 py-2 border rounded-xl text-xs bg-gray-50"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Quantité</label>
+                    <input type="number" id="trans-qty" min="1" required class="w-full px-4 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeModal('transfer-modal')" class="px-4 py-2 border rounded-xl text-gray-600 font-medium">Annuler</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium shadow-sm">Valider le transfert</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL BON DE COMMANDE MULTI-PRODUITS -->
+    <div id="order-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl my-auto">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Créer un Bon de Commande Multi-Produits</h3>
+            <div class="space-y-4 text-xs sm:text-sm">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">Fournisseur</label>
+                        <select id="ord-supplier" required class="w-full px-3 py-2 border rounded-xl focus:outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">Site de réception</label>
+                        <select id="ord-site" required class="w-full px-3 py-2 border rounded-xl focus:outline-none"></select>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-gray-50 rounded-xl border space-y-3">
+                    <span class="font-bold text-gray-700 block">Ajouter des articles à la commande :</span>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="col-span-2">
+                            <select id="ord-item-product" class="w-full px-2 py-1.5 border rounded-lg text-xs"></select>
+                        </div>
+                        <div class="flex space-x-1">
+                            <input type="number" id="ord-item-qty" min="1" value="1" class="w-16 px-2 py-1.5 border rounded-lg text-xs">
+                            <button type="button" onclick="addOrderLine()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="max-h-36 overflow-y-auto border rounded-lg bg-white p-2">
+                        <table class="w-full text-left text-xs">
+                            <thead><tr class="border-b text-gray-500"><th>Produit</th><th class="w-16 text-center">Qté</th><th class="w-8"></th></tr></thead>
+                            <tbody id="order-items-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-3 border-t">
+                    <button type="button" onclick="closeModal('order-modal')" class="px-4 py-2 border rounded-xl text-gray-600 font-medium">Annuler</button>
+                    <button type="button" onclick="saveMultiProductOrder()" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-medium shadow-sm">Générer le Bon de Commande</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TIERS (CLIENT/FOURNISSEUR) -->
+    <div id="contact-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl my-auto">
+            <h3 id="contact-modal-title" class="text-lg font-bold text-gray-800 mb-4">Nouveau Tiers</h3>
+            <form id="contact-form" onsubmit="saveContact(event)" class="space-y-4 text-xs sm:text-sm">
+                <input type="hidden" id="cont-id">
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">Type de tiers</label>
+                    <select id="cont-type" class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                        <option value="Fournisseur">Fournisseur</option>
+                        <option value="Client">Client</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">Nom / Raison Sociale</label>
+                    <input type="text" id="cont-name" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">Téléphone / WhatsApp</label>
+                    <input type="text" id="cont-phone" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">E-mail</label>
+                    <input type="email" id="cont-email" required class="w-full px-3 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeModal('contact-modal')" class="px-4 py-2 border rounded-xl text-gray-600 font-medium">Annuler</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL MOUVEMENT STOCK -->
+    <div id="movement-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl my-auto">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Nouveau mouvement de stock</h3>
+            <form id="movement-form" onsubmit="saveMovement(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Type de mouvement</label>
+                    <select id="mov-type" class="w-full px-4 py-2 border rounded-xl focus:outline-none">
+                        <option value="ENTREE">Entrée (Réapprovisionnement)</option>
+                        <option value="SORTIE">Sortie (Ajustement / Perte)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Produit concerné</label>
+                    <select id="mov-product" required class="w-full px-4 py-2 border rounded-xl focus:outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Quantité</label>
+                    <input type="number" id="mov-qty" min="1" required class="w-full px-4 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Motif / Commentaire</label>
+                    <input type="text" id="mov-reason" required class="w-full px-4 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeModal('movement-modal')" class="px-4 py-2 border rounded-xl text-gray-600 font-medium">Annuler</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm">Valider</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL VENTE -->
+    <div id="sale-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl my-auto">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Enregistrer une Vente Manuelle</h3>
+            <form id="sale-form" onsubmit="saveSale(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Produit vendu</label>
+                    <select id="sale-product" onchange="updateSalePriceInfo()" required class="w-full px-4 py-2 border rounded-xl focus:outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Quantité vendue</label>
+                    <input type="number" id="sale-qty" min="1" value="1" required class="w-full px-4 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div class="bg-blue-50 p-3 rounded-xl text-xs text-blue-800 space-y-1">
+                    <p id="sale-info-price">Prix unitaire : -</p>
+                    <p id="sale-info-margin">Marge estimée : -</p>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeModal('sale-modal')" class="px-4 py-2 border rounded-xl text-gray-600 font-medium">Annuler</button>
+                    <button type="submit" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium shadow-sm">Valider la Vente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL UTILISATEUR -->
+    <div id="user-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl my-auto">
+            <h3 id="user-modal-title" class="text-lg font-bold text-gray-800 mb-4">Ajouter un utilisateur</h3>
+            <form id="user-form" onsubmit="saveUser(event)" class="space-y-4">
+                <input type="hidden" id="usr-id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+                    <input type="text" id="usr-name" required class="w-full px-4 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Identifiant (login)</label>
+                    <input type="text" id="usr-login" required class="w-full px-4 py-2 border rounded-xl focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rôle et Droits</label>
+                    <select id="usr-role" class="w-full px-4 py-2 border rounded-xl focus:outline-none">
+                        <option value="Administrateur">Administrateur (Accès total)</option>
+                        <option value="Gestionnaire">Gestionnaire (Tableau de bord, Mouvements, Ventes, Catalogue)</option>
+                        <option value="Agent Stock">Agent Stock (Mouvements & Historique)</option>
+                        <option value="Consultation">Consultation (Lecture seule)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+                    <input type="password" id="usr-pass" class="w-full px-4 py-2 border rounded-xl focus:outline-none" placeholder="Mot de passe obligatoire">
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeModal('user-modal')" class="px-4 py-2 border rounded-xl text-gray-600 font-medium">Annuler</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- LOGIQUE JAVASCRIPT APP V4.2 -->
+    <script>
+        let currentCurrency = 'XAF';
+        const exchangeRates = { 'XAF': 1, 'EUR': 0.00152, 'USD': 0.00165 };
+        const currencySymbols = { 'XAF': 'FCFA', 'EUR': '€', 'USD': '$' };
+
+        function formatMoney(amountXAF) {
+            let converted = amountXAF * exchangeRates[currentCurrency];
+            let symbol = currencySymbols[currentCurrency];
+            return currentCurrency === 'XAF' ? Math.round(converted).toLocaleString('fr-FR') + ' ' + symbol : converted.toFixed(2) + ' ' + symbol;
+        }
+
+        function changeCurrency() {
+            currentCurrency = document.getElementById('currency-select').value;
+            renderCatalog();
+            updateDashboard();
+            renderSales();
+        }
+
+        let currentUser = null;
+        let currentSite = 'Tous les sites';
+        let currentCompany = 'Entreprise A (SARL)';
+        
+        function loadStorageData(key, defaultData) {
+            try {
+                let item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : defaultData;
+            } catch(e) { return defaultData; }
+        }
+
+        let companies = loadStorageData('stockpro_v42_companies', ['Entreprise A (SARL)', 'Entreprise B (Distribution)']);
+        let sites = loadStorageData('stockpro_v42_sites', ['Dépôt Principal', 'Boutique Centre', 'Entrepôt Nord']);
+
+        let products = loadStorageData('stockpro_v42_products', [
+            { id: 1, name: 'Ordinateur Portable 15 Pro', sku: 'LAP-15-001', category: 'Informatique', site: 'Dépôt Principal', unit: 'Unité', quantity: 18, min_stock: 5, prix_achat: 450000, prix_vente: 590000, photo: '', note: '' },
+            { id: 2, name: 'Ecran LED 27 Pulses 4K', sku: 'MON-27-04K', category: 'Informatique', site: 'Boutique Centre', unit: 'Unité', quantity: 2, min_stock: 5, prix_achat: 120000, prix_vente: 163000, photo: '', note: '' }
+        ]);
+
+        let movements = loadStorageData('stockpro_v42_movements', [
+            { date: '2026-10-23 14:44', type: 'SORTIE', productName: 'Oeuf', qty: 7, author: 'Admin Systèmes', reason: 'Vente' },
+            { date: '2026-10-23 14:35', type: 'SORTIE', productName: 'Clavier Mécanique Sans Fil', qty: 5, author: 'Admin Systèmes', reason: 'Vente' },
+            { date: '2026-10-23 14:34', type: 'ENTREE', productName: 'Souris Optique Ergonomique', qty: 20, author: 'Gestionnaire', reason: 'Réapprovisionnement' },
+            { date: '2026-10-23 13:45', type: 'TRANSFERT', productName: 'Ecran LED 27 Pulses 4K', qty: 1, author: 'Admin', reason: 'Transfert Inter-sites' }
+        ]);
+
+        let sales = loadStorageData('stockpro_v42_sales', [
+            { id: 1, date: '2026-10-23 14:44', productName: 'Oeuf', qty: 7, prixVenteUnitaire: 150, prixAchatUnitaire: 100, totalCA: 1050, totalMarge: 350 }
+        ]);
+
+        let orders = loadStorageData('stockpro_v42_orders', [
+            { 
+                id: 'BDC-001', 
+                supplier: 'TechSupplier SARL', 
+                site: 'Dépôt Principal', 
+                items: [
+                    { productName: 'Ordinateur Portable 15 Pro', qty: 10, receivedQty: 10 },
+                    { productName: 'Ecran LED 27 Pulses 4K', qty: 5, receivedQty: 2 }
+                ], 
+                status: 'Partiellement reçue' 
+            }
+        ]);
+
+        let contacts = loadStorageData('stockpro_v42_contacts', [
+            { id: 1, type: 'Fournisseur', name: 'TechSupplier SARL', phone: '+24107000000', email: 'contact@techsupplier.com' },
+            { id: 2, type: 'Client', name: 'Société Avenir GSM', phone: '+24106112233', email: 'achat@avenirgsm.ga' }
+        ]);
+
+        let users = loadStorageData('stockpro_v42_users', [
+            { id: 1, name: 'Admin Systèmes', login: 'admin', role: 'Administrateur', rights: 'Accès total', status: 'Actif', pass: 'admin123' },
+            { id: 2, name: 'Jean Gestionnaire', login: 'gestionnaire', role: 'Gestionnaire', rights: 'Stock, Ventes, Catalogue', status: 'Actif', pass: 'gest123' }
+        ]);
+
+        let logs = loadStorageData('stockpro_v42_logs', [
+            { date: '2026-10-24 09:00', text: 'Système ERP v4.2 initialisé.' }
+        ]);
+
+        function saveData() {
+            localStorage.setItem('stockpro_v42_companies', JSON.stringify(companies));
+            localStorage.setItem('stockpro_v42_sites', JSON.stringify(sites));
+            localStorage.setItem('stockpro_v42_products', JSON.stringify(products));
+            localStorage.setItem('stockpro_v42_movements', JSON.stringify(movements));
+            localStorage.setItem('stockpro_v42_sales', JSON.stringify(sales));
+            localStorage.setItem('stockpro_v42_orders', JSON.stringify(orders));
+            localStorage.setItem('stockpro_v42_contacts', JSON.stringify(contacts));
+            localStorage.setItem('stockpro_v42_users', JSON.stringify(users));
+            localStorage.setItem('stockpro_v42_logs', JSON.stringify(logs));
+        }
+
+        function resetAppStorage() {
+            if (confirm("Réinitialiser l'application avec les données par défaut ?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        async function addLog(text) {
+            let now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            let logData = {
+                date: now,
+                text: text
+            };
+
+            await fetch('http://localhost/stockpro-backend/api.php?endpoint=logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(logData)
+            });
+
+            // Optionnel : recharger les logs si l'onglet actif est celui des logs
+            let logsRes = await fetch('http://localhost/stockpro-backend/api.php?endpoint=logs').then(r => r.json());
+            logs = logsRes;
+            renderLogs();
+        }
+
+        function toggleMobileSidebar() {
+            document.getElementById('app-sidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebar-overlay').classList.toggle('hidden');
+        }
+
+        // --- GESTION ENTREPRISES & SITES ---
+        function initDropdowns() {
+            let compSelect = document.getElementById('app-company-select');
+            compSelect.innerHTML = '';
+            companies.forEach(c => {
+                let opt = document.createElement('option'); opt.value = c; opt.innerText = c;
+                if (c === currentCompany) opt.selected = true;
+                compSelect.appendChild(opt);
+            });
+
+            let siteSelect = document.getElementById('app-site-select');
+            siteSelect.innerHTML = '<option value="Tous les sites">Tous les sites</option>';
+            sites.forEach(s => {
+                let opt = document.createElement('option'); opt.value = s; opt.innerText = s;
+                if (s === currentSite) opt.selected = true;
+                siteSelect.appendChild(opt);
+            });
+
+            ['prod-site', 'ord-site', 'trans-from', 'trans-to'].forEach(id => {
+                let el = document.getElementById(id);
+                if (el) {
+                    el.innerHTML = '';
+                    sites.forEach(s => {
+                        let opt = document.createElement('option'); opt.value = s; opt.innerText = s;
+                        el.appendChild(opt);
+                    });
+                }
+            });
+        }
+
+        function changeSite() {
+            currentSite = document.getElementById('app-site-select').value;
+            updateDashboard();
+            renderCatalog();
+            updateStockAlertBadge();
+        }
+
+        function changeCompany() {
+            currentCompany = document.getElementById('app-company-select').value;
+            addLog(`Changement d'entreprise : ${currentCompany}`);
+            updateDashboard();
+        }
+
+        function openSettingsModal() {
+            renderSettingsLists();
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+
+        function renderSettingsLists() {
+            let compList = document.getElementById('settings-company-list');
+            compList.innerHTML = '';
+            companies.forEach((c, idx) => {
+                compList.innerHTML += `
+                    <li class="flex justify-between items-center bg-white p-1.5 rounded border mb-1">
+                        <span class="font-medium">${c}</span> 
+                        <div class="space-x-1">
+                            <button onclick="editCompany(${idx})" class="text-blue-500 hover:text-blue-700 px-1" title="Modifier"><i class="fa-solid fa-pen"></i></button>
+                            ${companies.length > 1 ? `<button onclick="deleteCompany(${idx})" class="text-red-500 hover:text-red-700 px-1" title="Supprimer"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        </div>
+                    </li>`;
+            });
+
+            let siteList = document.getElementById('settings-site-list');
+            siteList.innerHTML = '';
+            sites.forEach((s, idx) => {
+                siteList.innerHTML += `
+                    <li class="flex justify-between items-center bg-white p-1.5 rounded border mb-1">
+                        <span class="font-medium">${s}</span> 
+                        <div class="space-x-1">
+                            <button onclick="editSite(${idx})" class="text-blue-500 hover:text-blue-700 px-1" title="Modifier"><i class="fa-solid fa-pen"></i></button>
+                            ${sites.length > 1 ? `<button onclick="deleteSite(${idx})" class="text-red-500 hover:text-red-700 px-1" title="Supprimer"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        </div>
+                    </li>`;
+            });
+        }
+
+        function addNewCompany() {
+            let val = document.getElementById('new-company-input').value.trim();
+            if (val && !companies.includes(val)) {
+                companies.push(val);
+                document.getElementById('new-company-input').value = '';
+                saveData();
+                initDropdowns();
+                renderSettingsLists();
+                addLog(`Ajout entreprise : ${val}`);
+            }
+        }
+
+        function editCompany(idx) {
+            let oldName = companies[idx];
+            let newName = prompt("Modifier le nom de l'entreprise :", oldName);
+            if (newName && newName.trim() !== "" && !companies.includes(newName.trim())) {
+                companies[idx] = newName.trim();
+                if (currentCompany === oldName) currentCompany = newName.trim();
+                saveData();
+                initDropdowns();
+                renderSettingsLists();
+                addLog(`Modification entreprise : ${oldName} -> ${newName.trim()}`);
+            }
+        }
+
+        function deleteCompany(idx) {
+            companies.splice(idx, 1);
+            saveData();
+            initDropdowns();
+            renderSettingsLists();
+        }
+
+        function addNewSite() {
+            let val = document.getElementById('new-site-input').value.trim();
+            if (val && !sites.includes(val)) {
+                sites.push(val);
+                document.getElementById('new-site-input').value = '';
+                saveData();
+                initDropdowns();
+                renderSettingsLists();
+                addLog(`Ajout site : ${val}`);
+            }
+        }
+
+        function editSite(idx) {
+            let oldName = sites[idx];
+            let newName = prompt("Modifier le nom du site / magasin :", oldName);
+            if (newName && newName.trim() !== "" && !sites.includes(newName.trim())) {
+                sites[idx] = newName.trim();
+                products.forEach(p => { if (p.site === oldName) p.site = newName.trim(); });
+                if (currentSite === oldName) currentSite = newName.trim();
+                saveData();
+                initDropdowns();
+                renderSettingsLists();
+                renderCatalog();
+                updateDashboard();
+                addLog(`Modification site : ${oldName} -> ${newName.trim()}`);
+            }
+        }
+
+        function deleteSite(idx) {
+            sites.splice(idx, 1);
+            saveData();
+            initDropdowns();
+            renderSettingsLists();
+        }
+
+        // --- AUTH & SESSION & RÔLES ---
+        function fastLogin(login, roleName) {
+            let found = users.find(u => u.login.toLowerCase() === login.toLowerCase());
+            if (!found) {
+                found = { name: roleName, login: login, role: roleName, rights: 'Accès global', pass: 'admin123' };
+                users.push(found);
+                saveData();
+            }
+            // Exigence mot de passe obligatoire même pour le fast login si le compte en a un
+            let passVal = prompt(`Veuillez saisir le mot de passe pour [${found.login}] :`);
+            if (found.pass && found.pass !== "" && found.pass !== passVal) {
+                alert("Mot de passe incorrect ! Accès refusé.");
+                return;
+            }
+            currentUser = found;
+            initAppSession();
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            let loginVal = document.getElementById('login-user').value.trim().toLowerCase();
+            let passVal = document.getElementById('login-pass').value;
+            let found = users.find(u => u.login.toLowerCase() === loginVal);
+            
+            if (!found) {
+                alert("Identifiant inconnu.");
+                return;
+            }
+            // Le mot de passe est strictement obligatoire pour l'administrateur (et tout utilisateur)
+            if (!passVal || (found.pass && found.pass !== "" && found.pass !== passVal)) {
+                alert("Mot de passe obligatoire ou incorrect ! L'accès est refusé.");
+                return;
+            }
+            currentUser = found;
+            initAppSession();
+        }
+
+        function applyRolePermissions() {
+            const role = currentUser.role;
+            const navIds = ['dashboard', 'pos', 'catalog', 'orders', 'contacts', 'movements', 'sales', 'reports', 'users', 'logs'];
+            
+            // Masquage / Affichage strict des éléments de menu
+            navIds.forEach(id => {
+                let navItem = document.getElementById('nav-' + id);
+                if (!navItem) return;
+                
+                let show = false;
+                if (role === 'Administrateur') {
+                    // Accès total
+                    show = true;
+                } else if (role === 'Gestionnaire') {
+                    // Seuls les modules : Tableau de bord, Mouvements & Transferts, Ventes & Marges, Catalogue Produits
+                    show = ['dashboard', 'movements', 'sales', 'catalog'].includes(id);
+                } else if (role === 'Agent Stock') {
+                    // Seuls les modules : Mouvements & Transferts et Historique/Logs
+                    show = ['movements', 'logs'].includes(id);
+                } else if (role === 'Consultation') {
+                    // Tous sauf Utilisateurs & Caisse
+                    show = (id !== 'users' && id !== 'pos');
+                }
+                
+                navItem.style.display = show ? 'flex' : 'none';
+            });
+
+            // Redirection vers le premier module autorisé à la connexion
+            if (role === 'Gestionnaire') {
+                switchTab('dashboard');
+            } else if (role === 'Agent Stock') {
+                switchTab('movements');
+            } else if (role === 'Consultation') {
+                switchTab('dashboard');
+            } else {
+                switchTab('dashboard');
+            }
+
+            // Gestion de la visibilité des boutons d'édition selon le rôle Consultation
+            if (role === 'Consultation') {
+                document.querySelectorAll('.manager-action, .admin-only').forEach(el => el.style.display = 'none');
+            } else {
+                let isAdmin = (role === 'Administrateur');
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
+                let canEdit = ['Administrateur', 'Gestionnaire', 'Agent Stock'].includes(role);
+                document.querySelectorAll('.manager-action').forEach(el => el.style.display = canEdit ? 'inline-flex' : 'none');
+            }
+        }
+
+        function initAppSession() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('user-name-display').innerText = currentUser.name;
+            document.getElementById('user-role-display').innerText = currentUser.role;
+            document.getElementById('user-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
+
+            applyRolePermissions();
+            initDropdowns();
+            updateStockAlertBadge();
+            addLog(`Connexion de ${currentUser.name} (${currentUser.role})`);
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('login-form').reset();
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+        }
+
+        function switchTab(tabId) {
+            ['dashboard', 'pos', 'catalog', 'orders', 'contacts', 'movements', 'sales', 'reports', 'users', 'logs'].forEach(id => {
+                let tabElem = document.getElementById('tab-' + id);
+                let navElem = document.getElementById('nav-' + id);
+                if (tabElem) tabElem.classList.add('hidden');
+                if (navElem) navElem.className = "flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white";
+            });
+
+            let targetTab = document.getElementById('tab-' + tabId);
+            if (targetTab) targetTab.classList.remove('hidden');
+            
+            let activeNav = document.getElementById('nav-' + tabId);
+            if (activeNav) activeNav.className = "flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium transition bg-blue-600 text-white shadow-md";
+
+            let pageTitleMap = {
+                'dashboard': 'Tableau de bord',
+                'pos': 'Caisse (POS)',
+                'catalog': 'Catalogue Produits',
+                'orders': 'Commandes & Réceptions',
+                'contacts': 'Clients & Fournisseurs',
+                'movements': 'Mouvements & Transferts',
+                'sales': 'Ventes & Marges',
+                'reports': 'Rapports de Stocks',
+                'users': 'Utilisateurs & Droits',
+                'logs': 'Historique / Logs'
+            };
+            if (pageTitleMap[tabId]) {
+                document.getElementById('page-title').innerText = pageTitleMap[tabId];
+            }
+
+            if (window.innerWidth < 768 && !document.getElementById('app-sidebar').classList.contains('-translate-x-full')) {
+                toggleMobileSidebar();
+            }
+
+            if (tabId === 'dashboard') updateDashboard();
+            if (tabId === 'pos') renderPosCatalog();
+            if (tabId === 'catalog') renderCatalog();
+            if (tabId === 'orders') renderOrders();
+            if (tabId === 'contacts') renderContacts();
+            if (tabId === 'movements') renderMovements();
+            if (tabId === 'sales') renderSales();
+            if (tabId === 'reports') renderReports();
+            if (tabId === 'users') renderUsers();
+            if (tabId === 'logs') renderLogs();
+        }
+
+        // --- ALERTE STOCK INTERACTIVE À CÔTÉ DU SCANNER ---
+        function updateStockAlertBadge() {
+            let filteredProds = products.filter(p => currentSite === 'Tous les sites' || p.site === currentSite);
+            let alertsCount = filteredProds.filter(p => p.quantity <= p.min_stock).length;
+            let btn = document.getElementById('header-stock-alert-btn');
+            let txt = document.getElementById('header-stock-alert-text');
+            if (alertsCount > 0) {
+                btn.classList.remove('hidden');
+                btn.classList.add('flex');
+                txt.innerText = `${alertsCount} Alerte(s) stock`;
+            } else {
+                btn.classList.add('hidden');
+                btn.classList.remove('flex');
+            }
+        }
+
+        function goToAlertCatalog() {
+            switchTab('catalog');
+            document.getElementById('filter-status').value = '';
+            renderCatalog(true); // Trie avec les alertes en tête de liste
+        }
+
+        // --- IMPORT & EXPORT CSV PRODUITS ---
+        function exportProductsCSV() {
+            let csv = "Nom,SKU,Categorie,Site,Unite,Quantite,SeuilMin,PrixAchat,PrixVente\n";
+            products.forEach(p => {
+                csv += `"${p.name}","${p.sku}","${p.category}","${p.site}","${p.unit}",${p.quantity},${p.min_stock},${p.prix_achat},${p.prix_vente}\n`;
+            });
+            let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            let url = URL.createObjectURL(blob);
+            let link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "catalogue_produits.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function importCSV(e) {
+            let file = e.target.files[0];
+            if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                let lines = evt.target.result.split('\n');
+                let count = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    let cols = lines[i].split(',');
+                    if (cols.length >= 6) {
+                        let newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+                        products.push({
+                            id: newId,
+                            name: cols[0].trim().replace(/^"|"$/g, ''),
+                            sku: cols[1].trim().replace(/^"|"$/g, ''),
+                            category: cols[2].trim().replace(/^"|"$/g, ''),
+                            site: sites[0] || 'Dépôt Principal',
+                            unit: 'Unité',
+                            quantity: parseInt(cols[3]) || 0,
+                            min_stock: parseInt(cols[4]) || 5,
+                            prix_achat: parseFloat(cols[5]) || 0,
+                            prix_vente: parseFloat(cols[6]) || 0,
+                            photo: '', note: 'Import CSV'
+                        });
+                        count++;
+                    }
+                }
+                saveData();
+                renderCatalog();
+                updateDashboard();
+                updateStockAlertBadge();
+                alert(`${count} article(s) importé(s) avec succès !`);
+            };
+            reader.readAsText(file);
+        }
+
+        // --- SCANNER CODE-BARRES ---
+        let html5QrCode = null;
+        function openBarcodeScanner() {
+            document.getElementById('scanner-modal').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 250 },
+                (decodedText) => {
+                    document.getElementById('pos-search').value = decodedText;
+                    document.getElementById('search-product').value = decodedText;
+                    closeModal('scanner-modal');
+                    if (html5QrCode) html5QrCode.stop();
+                    renderPosCatalog();
+                    renderCatalog();
+                },
+                () => {}
+            );
+        }
+
+        // --- PHOTO PRODUIT ---
+        function previewProductPhoto(event) {
+            let file = event.target.files[0];
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('prod-photo-base64').value = e.target.result;
+                    document.getElementById('photo-preview-container').innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // --- TRANSFERTS INTER-SITES ---
+        function openTransferModal() {
+            let selectProd = document.getElementById('trans-product');
+            selectProd.innerHTML = '';
+            products.forEach(p => {
+                let opt = document.createElement('option');
+                opt.value = p.id;
+                opt.innerText = `${p.name} (Site: ${p.site} | Dispo: ${p.quantity})`;
+                selectProd.appendChild(opt);
+            });
+            document.getElementById('transfer-modal').classList.remove('hidden');
+        }
+
+        function saveTransfer(e) {
+            e.preventDefault();
+            let prodId = parseInt(document.getElementById('trans-product').value);
+            let fromSite = document.getElementById('trans-from').value;
+            let toSite = document.getElementById('trans-to').value;
+            let qty = parseInt(document.getElementById('trans-qty').value);
+
+            if (fromSite === toSite) {
+                alert("Les sites d'origine et de destination doivent être différents !");
+                return;
+            }
+
+            let prod = products.find(p => p.id === prodId);
+            if (!prod || prod.quantity < qty) {
+                alert("Stock insuffisant sur le site d'origine !");
+                return;
+            }
+
+            prod.quantity -= qty;
+            let destProd = products.find(p => p.sku === prod.sku && p.site === toSite);
+            if (destProd) {
+                destProd.quantity += qty;
+            } else {
+                let newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+                products.push({ ...prod, id: newId, site: toSite, quantity: qty });
+            }
+
+            let now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            movements.unshift({ date: now, type: 'TRANSFERT', productName: prod.name, qty, author: currentUser.name, reason: `Transfert ${fromSite} -> ${toSite}` });
+
+            addLog(`Transfert de ${qty}x ${prod.name} de ${fromSite} vers ${toSite}`);
+            saveData();
+            closeModal('transfer-modal');
+            updateDashboard();
+            renderCatalog();
+            updateStockAlertBadge();
+        }
+
+        // --- COMMANDES & RÉCEPTIONS ---
+        let tempOrderItems = [];
+        function openOrderModal() {
+            tempOrderItems = [];
+            renderOrderItemsTable();
+
+            let supplierSel = document.getElementById('ord-supplier');
+            supplierSel.innerHTML = '';
+            contacts.filter(c => c.type === 'Fournisseur').forEach(c => {
+                supplierSel.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+
+            let prodSel = document.getElementById('ord-item-product');
+            prodSel.innerHTML = '';
+            products.forEach(p => {
+                prodSel.innerHTML += `<option value="${p.name}">${p.name}</option>`;
+            });
+
+            document.getElementById('order-modal').classList.remove('hidden');
+        }
+
+        function addOrderLine() {
+            let prodName = document.getElementById('ord-item-product').value;
+            let qty = parseInt(document.getElementById('ord-item-qty').value) || 1;
+            tempOrderItems.push({ productName: prodName, qty: qty, receivedQty: 0 });
+            renderOrderItemsTable();
+        }
+
+        function renderOrderItemsTable() {
+            let tbody = document.getElementById('order-items-tbody');
+            tbody.innerHTML = '';
+            if (tempOrderItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-400 py-2">Aucun article ajouté</td></tr>';
+                return;
+            }
+            tempOrderItems.forEach((item, idx) => {
+                tbody.innerHTML += `<tr><td>${item.productName}</td><td class="text-center font-bold">${item.qty}</td><td class="text-right"><button type="button" onclick="tempOrderItems.splice(${idx}, 1); renderOrderItemsTable();" class="text-red-500"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+            });
+        }
+
+        // A. Enregistrement d'un nouveau bon de commande
+        async function saveMultiProductOrder() {
+            if (tempOrderItems.length === 0) {
+                alert("Veuillez ajouter au moins un produit à la commande !");
+                return;
+            }
+            let newId = 'BDC-' + String(orders.length + 1).padStart(3, '0');
+            let orderData = {
+                id: newId,
+                supplier: document.getElementById('ord-supplier').value,
+                site: document.getElementById('ord-site').value,
+                items: tempOrderItems,
+                status: 'En attente'
+            };
+
+            // Envoi au serveur PHP
+            await fetch('http://localhost/stockpro-backend/api.php?endpoint=orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+
+            closeModal('order-modal');
+            loadDataFromDatabase(); // Recharge toutes les données depuis MySQL
+            alert("Bon de commande multi-produits généré avec succès !");
+        }
+
+        // B. Mise à jour du statut lors de la réception de la commande (dans submitOrderReception)
+        // À insérer juste avant ou après saveData() :
+        async function submitOrderReception(e) {
+            e.preventDefault();
+            let orderId = document.getElementById('rec-order-id').value;
+            let ord = orders.find(o => o.id === orderId);
+            if (!ord) return;
+
+            let now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            let allComplete = true;
+
+            ord.items.forEach((item, idx) => {
+                let inputVal = parseInt(document.getElementById(`rec-item-qty-${idx}`).value) || 0;
+                if (inputVal > 0) {
+                    item.receivedQty = (item.receivedQty || 0) + inputVal;
+                    // ... (mise à jour du stock produit et mouvement)
+                }
+                if (item.receivedQty < item.qty) {
+                    allComplete = false;
+                }
+            });
+
+            ord.status = allComplete ? 'Reçue' : 'Partiellement reçue';
+
+            // Envoi de la commande mise à jour à la base de données
+            await fetch('http://localhost/stockpro-backend/api.php?endpoint=orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(ord)
+            });
+
+            closeModal('receive-order-modal');
+            loadDataFromDatabase();
+            alert(allComplete ? "Commande entièrement reçue !" : "Réception partielle enregistrée.");
+        }
+
+        function openViewOrderModal(orderId) {
+            let ord = orders.find(o => o.id === orderId);
+            if (!ord) return;
+            let content = document.getElementById('view-order-content');
+            let itemsHtml = '';
+            ord.items.forEach(i => {
+                itemsHtml += `<li class="flex justify-between border-b py-1"><span>${i.productName}</span><span class="font-bold">Commandé : ${i.qty} | Reçu : ${i.receivedQty || 0}</span></li>`;
+            });
+            content.innerHTML = `
+                <div class="bg-gray-50 p-3 rounded-xl border space-y-2">
+                    <p><strong>N° Commande :</strong> ${ord.id}</p>
+                    <p><strong>Fournisseur :</strong> ${ord.supplier}</p>
+                    <p><strong>Site de destination :</strong> ${ord.site}</p>
+                    <p><strong>Statut :</strong> <span class="px-2 py-0.5 rounded text-xs font-semibold ${ord.status === 'Reçue' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${ord.status}</span></p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700 mb-1">Articles de la commande :</p>
+                    <ul class="text-xs space-y-1">${itemsHtml}</ul>
+                </div>
+            `;
+            document.getElementById('view-order-modal').classList.remove('hidden');
+        }
+
+        function openReceiveOrderModal(orderId) {
+            let ord = orders.find(o => o.id === orderId);
+            if (!ord) return;
+            document.getElementById('rec-order-id').value = ord.id;
+            document.getElementById('rec-order-id-title').innerText = ord.id;
+
+            let tbody = document.getElementById('receive-items-tbody');
+            tbody.innerHTML = '';
+            ord.items.forEach((item, idx) => {
+                let remaining = item.qty - (item.receivedQty || 0);
+                tbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="py-2 px-2 font-medium">${item.productName}</td>
+                        <td class="py-2 px-2 text-center font-bold">${item.qty}</td>
+                        <td class="py-2 px-2 text-center text-gray-500">${item.receivedQty || 0}</td>
+                        <td class="py-2 px-2 text-center">
+                            <input type="number" min="0" max="${remaining}" value="${remaining}" id="rec-item-qty-${idx}" class="w-16 text-center border rounded py-1 text-xs font-bold">
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('receive-order-modal').classList.remove('hidden');
+        }
+
+        function submitOrderReception(e) {
+            e.preventDefault();
+            let orderId = document.getElementById('rec-order-id').value;
+            let ord = orders.find(o => o.id === orderId);
+            if (!ord) return;
+
+            let now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            let allComplete = true;
+
+            ord.items.forEach((item, idx) => {
+                let inputVal = parseInt(document.getElementById(`rec-item-qty-${idx}`).value) || 0;
+                if (inputVal > 0) {
+                    item.receivedQty = (item.receivedQty || 0) + inputVal;
+                    
+                    let prod = products.find(p => p.name === item.productName && p.site === ord.site);
+                    if (prod) {
+                        prod.quantity += inputVal;
+                    } else {
+                        let newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+                        products.push({ id: newId, name: item.productName, sku: 'REF-' + Math.floor(Math.random()*10000), category: 'Général', site: ord.site, unit: 'Unité', quantity: inputVal, min_stock: 5, prix_achat: 1000, prix_vente: 1500, photo: '', note: '' });
+                    }
+                    movements.unshift({ date: now, type: 'ENTREE', productName: item.productName, qty: inputVal, author: currentUser.name, reason: `Réception BDC ${ord.id}` });
+                }
+                if (item.receivedQty < item.qty) {
+                    allComplete = false;
+                }
+            });
+
+            ord.status = allComplete ? 'Reçue' : 'Partiellement reçue';
+            saveData();
+            closeModal('receive-order-modal');
+            renderOrders();
+            updateDashboard();
+            updateStockAlertBadge();
+            alert(allComplete ? "Commande entièrement reçue et stock mis à jour !" : "Réception partielle enregistrée.");
+        }
+
+        function renderOrders() {
+            let tbody = document.getElementById('orders-table-body');
+            tbody.innerHTML = '';
+            document.getElementById('total-orders-count-badge').innerText = `Total : ${orders.length} commandes`;
+
+            orders.forEach(o => {
+                let isReceived = o.status === 'Reçue';
+                let itemsSummary = o.items ? o.items.map(i => `${i.receivedQty || 0}/${i.qty} ${i.productName}`).join(', ') : '';
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-4 px-6 font-bold text-gray-900">${o.id}</td>
+                    <td class="py-4 px-4">${o.supplier}</td>
+                    <td class="py-4 px-4">${o.site}</td>
+                    <td class="py-4 px-4 font-semibold text-xs">${itemsSummary}</td>
+                    <td class="py-4 px-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold ${isReceived ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${o.status}</span></td>
+                    <td class="py-4 px-6 text-right space-x-2">
+                        <button onclick="openViewOrderModal('${o.id}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs px-2.5 py-1.5 rounded-lg font-semibold" title="Consulter"><i class="fa-solid fa-eye"></i></button>
+                        ${!isReceived && currentUser.role !== 'Consultation' ? `<button onclick="openReceiveOrderModal('${o.id}')" class="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-emerald-700 font-semibold"><i class="fa-solid fa-box-open mr-1"></i> Réceptionner</button>` : '<span class="text-xs text-gray-400">Complété</span>'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- CLIENTS & FOURNISSEURS ---
+        function openContactModal(id = null) {
+            document.getElementById('contact-form').reset();
+            document.getElementById('cont-id').value = '';
+            if (id) {
+                let c = contacts.find(item => item.id === id);
+                if (c) {
+                    document.getElementById('contact-modal-title').innerText = "Modifier le Tiers";
+                    document.getElementById('cont-id').value = c.id;
+                    document.getElementById('cont-type').value = c.type;
+                    document.getElementById('cont-name').value = c.name;
+                    document.getElementById('cont-phone').value = c.phone;
+                    document.getElementById('cont-email').value = c.email;
+                }
+            } else {
+                document.getElementById('contact-modal-title').innerText = "Nouveau Tiers";
+            }
+            document.getElementById('contact-modal').classList.remove('hidden');
+        }
+
+        function saveContact(e) {
+            e.preventDefault();
+            let id = document.getElementById('cont-id').value;
+            let data = {
+                type: document.getElementById('cont-type').value,
+                name: document.getElementById('cont-name').value,
+                phone: document.getElementById('cont-phone').value,
+                email: document.getElementById('cont-email').value
+            };
+
+            if (id !== "") {
+                let c = contacts.find(item => item.id == id);
+                if (c) Object.assign(c, data);
+            } else {
+                let newId = contacts.length > 0 ? Math.max(...contacts.map(c => c.id)) + 1 : 1;
+                contacts.push({ id: newId, ...data });
+            }
+
+            saveData();
+            closeModal('contact-modal');
+            renderContacts();
+        }
+
+        function renderContacts() {
+            let search = document.getElementById('search-contact').value.toLowerCase();
+            let typeFilter = document.getElementById('filter-contact-type').value;
+            let tbody = document.getElementById('contacts-table-body');
+            tbody.innerHTML = '';
+
+            let totalClients = contacts.filter(c => c.type === 'Client').length;
+            let totalSuppliers = contacts.filter(c => c.type === 'Fournisseur').length;
+            document.getElementById('count-clients-badge').innerText = `Clients : ${totalClients}`;
+            document.getElementById('count-suppliers-badge').innerText = `Fournisseurs : ${totalSuppliers}`;
+
+            let filtered = contacts.filter(c => {
+                let matchType = !typeFilter || c.type === typeFilter;
+                let matchSearch = c.name.toLowerCase().includes(search) || c.email.toLowerCase().includes(search);
+                return matchType && matchSearch;
+            });
+
+            filtered.forEach(c => {
+                let tr = document.createElement('tr');
+                let actionsHtml = currentUser.role !== 'Consultation' ? `
+                    <button onclick="openContactModal(${c.id})" class="text-blue-600 hover:text-blue-800 p-1"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="deleteContact(${c.id})" class="text-red-600 hover:text-red-800 p-1"><i class="fa-solid fa-trash"></i></button>
+                ` : '<span class="text-xs text-gray-400">Lecture seule</span>';
+
+                tr.innerHTML = `
+                    <td class="py-4 px-6"><span class="${c.type === 'Fournisseur' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'} px-2.5 py-1 rounded-full text-xs font-semibold">${c.type}</span></td>
+                    <td class="py-4 px-4 font-bold text-gray-900">${c.name}</td>
+                    <td class="py-4 px-4">${c.phone}</td>
+                    <td class="py-4 px-4 text-gray-500">${c.email}</td>
+                    <td class="py-4 px-6 text-right space-x-1">${actionsHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteContact(id) {
+            if (confirm("Supprimer ce tiers ?")) {
+                contacts = contacts.filter(c => c.id !== id);
+                saveData();
+                renderContacts();
+            }
+        }
+
+        // --- CAISSE POS ---
+        let posCart = [];
+        function renderPosCatalog() {
+            let search = document.getElementById('pos-search').value.toLowerCase();
+            let grid = document.getElementById('pos-product-grid');
+            grid.innerHTML = '';
+
+            let filtered = products.filter(p => (currentSite === 'Tous les sites' || p.site === currentSite) && (p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search)));
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-gray-400 col-span-3 text-center py-8">Aucun produit trouvé</p>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                let isOut = p.quantity <= 0;
+                let card = document.createElement('div');
+                card.className = `bg-white p-3 rounded-2xl border shadow-sm flex flex-col justify-between transition ${isOut ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md cursor-pointer border-l-4 border-l-emerald-500'}`;
+                card.onclick = () => { if (!isOut && currentUser.role !== 'Consultation') addToPosCart(p.id); };
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-mono">${p.sku}</span>
+                            <span class="text-[10px] font-bold ${isOut ? 'text-red-500' : 'text-emerald-600'}">${p.quantity} (${p.unit})</span>
+                        </div>
+                        <h4 class="font-bold text-xs text-gray-800 line-clamp-2 mt-1">${p.name}</h4>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between">
+                        <span class="font-extrabold text-blue-600 text-xs">${formatMoney(p.prix_vente)}</span>
+                        <button class="bg-emerald-50 text-emerald-700 w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function addToPosCart(productId) {
+            let prod = products.find(p => p.id === productId);
+            if (!prod || prod.quantity <= 0) return;
+
+            let item = posCart.find(i => i.id === productId);
+            if (item) {
+                if (item.qty < prod.quantity) item.qty++;
+                else alert("Stock maximum atteint !");
+            } else {
+                posCart.push({ id: prod.id, name: prod.name, prix_vente: prod.prix_vente, prix_achat: prod.prix_achat, qty: 1, maxQty: prod.quantity });
+            }
+            renderPosCart();
+        }
+
+        function updatePosQty(productId, delta) {
+            let item = posCart.find(i => i.id === productId);
+            if (!item) return;
+            item.qty += delta;
+            if (item.qty <= 0) posCart = posCart.filter(i => i.id !== productId);
+            else if (item.qty > item.maxQty) { item.qty = item.maxQty; alert("Stock insuffisant !"); }
+            renderPosCart();
+        }
+
+        function setPosItemQty(productId, val) {
+            let item = posCart.find(i => i.id === productId);
+            if (!item) return;
+            let newQty = parseInt(val) || 1;
+            if (newQty > item.maxQty) {
+                item.qty = item.maxQty;
+            } else if (newQty <= 0) {
+                posCart = posCart.filter(i => i.id !== productId);
+            } else {
+                item.qty = newQty;
+            }
+            renderPosCart();
+        }
+
+        function clearPosCart() { posCart = []; renderPosCart(); }
+
+        function renderPosCart() {
+            let container = document.getElementById('pos-cart-items');
+            container.innerHTML = '';
+            if (posCart.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 text-center py-12">Panier vide</p>';
+                document.getElementById('pos-cart-count').innerText = '0';
+                document.getElementById('pos-cart-total').innerText = formatMoney(0);
+                return;
+            }
+            let totalCount = 0, totalAmount = 0;
+            posCart.forEach(item => {
+                totalCount += item.qty;
+                let subtotal = item.prix_vente * item.qty;
+                totalAmount += subtotal;
+                let div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-2 bg-gray-50 rounded-xl border text-xs';
+                div.innerHTML = `
+                    <div class="flex-1 pr-2"><p class="font-bold text-gray-800 truncate">${item.name}</p><p class="text-blue-600 font-semibold">${formatMoney(item.prix_vente)}</p></div>
+                    <div class="flex items-center space-x-1">
+                        <button onclick="updatePosQty(${item.id}, -1)" class="w-5 h-5 bg-white border rounded font-bold">-</button>
+                        <input type="number" min="1" value="${item.qty}" onchange="setPosItemQty(${item.id}, this.value)" class="w-10 text-center border rounded text-xs font-bold py-0.5">
+                        <button onclick="updatePosQty(${item.id}, 1)" class="w-5 h-5 bg-white border rounded font-bold">+</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById('pos-cart-count').innerText = totalCount;
+            document.getElementById('pos-cart-total').innerText = formatMoney(totalAmount);
+        }
+
+        // A. Vente depuis la Caisse (POS)
+        async function checkoutPosSale() {
+            if (posCart.length === 0 || currentUser.role === 'Consultation') return;
+            let now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+
+            for (let item of posCart) {
+                let prod = products.find(p => p.id === item.id);
+                if (prod) {
+                    let saleData = {
+                        date: now,
+                        productName: prod.name,
+                        qty: item.qty,
+                        prixVenteUnitaire: prod.prix_vente,
+                        prixAchatUnitaire: prod.prix_achat,
+                        totalCA: prod.prix_vente * item.qty,
+                        totalMarge: (prod.prix_vente - prod.prix_achat) * item.qty
+                    };
+
+                    // Enregistrement de chaque article vendu dans la table sales
+                    await fetch('http://localhost/stockpro-backend/api.php?endpoint=sales', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(saleData)
+                    });
+
+                    // Enregistrement du mouvement de sortie associé
+                    let movData = {
+                        date: now,
+                        type: 'SORTIE',
+                        productName: prod.name,
+                        qty: item.qty,
+                        author: currentUser.name,
+                        reason: 'Vente Caisse POS'
+                    };
+                    await fetch('http://localhost/stockpro-backend/api.php?endpoint=movements', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(movData)
+                    });
+                }
+            }
+
+            clearPosCart();
+            loadDataFromDatabase();
+            alert("Vente enregistrée avec succès dans MySQL !");
+        }
+
+        // B. Vente manuelle (saveSale)
+        async function saveSale(e) {
+            e.preventDefault();
+            let prodId = parseInt(document.getElementById('sale-product').value);
+            let qty = parseInt(document.getElementById('sale-qty').value);
+            let product = products.find(p => p.id === prodId);
+            if (!product || product.quantity < qty) return alert("Stock insuffisant !");
+
+            let now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            let saleData = {
+                date: now,
+                productName: product.name,
+                qty: qty,
+                prixVenteUnitaire: product.prix_vente,
+                prixAchatUnitaire: product.prix_achat,
+                totalCA: product.prix_vente * qty,
+                totalMarge: (product.prix_vente - product.prix_achat) * qty
+            };
+
+            await fetch('http://localhost/stockpro-backend/api.php?endpoint=sales', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(saleData)
+            });
+
+            closeModal('sale-modal');
+            loadDataFromDatabase();
+            alert("Vente manuelle enregistrée !");
+        }
+
+        // --- DASHBOARD & RAPPORTS ---
+        let myStockChart = null, mySalesByDateChart = null;
+        function updateDashboard() {
+            let filteredProds = products.filter(p => currentSite === 'Tous les sites' || p.site === currentSite);
+
+            let totalValAchat = filteredProds.reduce((acc, p) => acc + (p.prix_achat * p.quantity), 0);
+            let totalValVente = filteredProds.reduce((acc, p) => acc + (p.prix_vente * p.quantity), 0);
+            let totalCA = sales.reduce((acc, s) => acc + s.totalCA, 0);
+            let totalBenefice = sales.reduce((acc, s) => acc + s.totalMarge, 0);
+
+            document.getElementById('kpi-val-achat').innerText = formatMoney(totalValAchat);
+            document.getElementById('kpi-val-vente').innerText = formatMoney(totalValVente);
+            document.getElementById('kpi-total-ca').innerText = formatMoney(totalCA);
+            document.getElementById('kpi-total-benefice').innerText = formatMoney(totalBenefice);
+
+            let alerts = filteredProds.filter(p => p.quantity <= p.min_stock);
+            let urgentContainer = document.getElementById('urgent-reorder-list');
+            urgentContainer.innerHTML = '';
+            if (alerts.length === 0) {
+                urgentContainer.innerHTML = '<p class="text-xs text-gray-400 py-4 text-center">Aucun produit critique en stock.</p>';
+            } else {
+                alerts.forEach(p => {
+                    urgentContainer.innerHTML += `
+                        <div class="p-3 bg-amber-50/40 rounded-xl border border-amber-100 flex justify-between items-center text-xs">
+                            <div>
+                                <p class="font-bold text-gray-900">${p.name}</p>
+                                <p class="text-[11px] text-gray-500 font-mono mt-0.5">SKU : ${p.sku}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-bold text-amber-700 block">${p.quantity} dispo</span>
+                                <span class="text-[10px] text-gray-400">Seuil : ${p.min_stock}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            let movContainer = document.getElementById('recent-movements-list');
+            movContainer.innerHTML = '';
+            movements.slice(0, 5).forEach(m => {
+                let isPlus = m.type === 'ENTREE';
+                movContainer.innerHTML += `
+                    <div class="p-3 bg-white rounded-xl border border-gray-100 shadow-xs flex justify-between items-center text-xs">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-5 h-5 rounded-full flex items-center justify-center font-bold text-xs ${isPlus ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}">${isPlus ? '+' : '-'}</span>
+                            <div>
+                                <p class="font-bold text-gray-900">${m.productName}</p>
+                                <p class="text-[10px] text-gray-400">${m.date}</p>
+                            </div>
+                        </div>
+                        <span class="font-bold text-gray-700">${m.qty} un.</span>
+                    </div>
+                `;
+            });
+
+            let ctx = document.getElementById('stockChart').getContext('2d');
+            if (myStockChart) myStockChart.destroy();
+            myStockChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: filteredProds.map(p => p.name),
+                    datasets: [{ label: 'Stock Dispo', data: filteredProds.map(p => p.quantity), backgroundColor: '#3b82f6', borderRadius: 6 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            let salesByDate = {};
+            sales.forEach(s => {
+                let day = s.date.split(' ')[0];
+                salesByDate[day] = (salesByDate[day] || 0) + s.totalCA;
+            });
+            let sortedDates = Object.keys(salesByDate).sort();
+
+            let ctxSales = document.getElementById('salesByDateChart').getContext('2d');
+            if (mySalesByDateChart) mySalesByDateChart.destroy();
+            mySalesByDateChart = new Chart(ctxSales, {
+                type: 'line',
+                data: {
+                    labels: sortedDates.length > 0 ? sortedDates : ['Aucune vente'],
+                    datasets: [{ label: 'CA', data: sortedDates.map(d => salesByDate[d]), borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true, tension: 0.3 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            updateStockAlertBadge();
+        }
+
+        function resetCaFilters() {
+            document.getElementById('filter-ca-start').value = '';
+            document.getElementById('filter-ca-end').value = '';
+            updateDashboard();
+        }
+
+        // --- RAPPORTS DE STOCKS DÉTAILLÉS ---
+        function renderReports() {
+            let siteFilter = document.getElementById('report-site-filter').value;
+            let search = document.getElementById('report-search') ? document.getElementById('report-search').value.toLowerCase() : '';
+            let filteredProds = products.filter(p => (!siteFilter || p.site === siteFilter) && (p.name.toLowerCase().includes(search) || p.category.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search)));
+
+            let totalVal = filteredProds.reduce((acc, p) => acc + (p.prix_vente * p.quantity), 0);
+            let totalCost = filteredProds.reduce((acc, p) => acc + (p.prix_achat * p.quantity), 0);
+            let totalUnits = filteredProds.reduce((acc, p) => acc + p.quantity, 0);
+
+            document.getElementById('report-avg-cost').innerText = formatMoney(totalUnits > 0 ? totalCost / totalUnits : 0);
+            document.getElementById('report-total-units').innerText = totalUnits + ' Unités';
+            document.getElementById('report-total-val').innerText = formatMoney(totalVal);
+
+            let tbody = document.getElementById('detailed-inventory-tbody');
+            tbody.innerHTML = '';
+            filteredProds.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-2 px-4 font-semibold text-gray-700">${p.category}</td>
+                        <td class="py-2 px-4 font-bold text-gray-900">${p.name}</td>
+                        <td class="py-2 px-3 font-mono text-gray-500">${p.sku}</td>
+                        <td class="py-2 px-3">${p.site}</td>
+                        <td class="py-2 px-3 font-bold">${p.quantity} (${p.unit})</td>
+                        <td class="py-2 px-3">${formatMoney(p.prix_achat)}</td>
+                        <td class="py-2 px-4 font-semibold text-right text-indigo-600">${formatMoney(p.prix_achat * p.quantity)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function exportDetailedInventoryCSV() {
+            let csv = "Catégorie,Article,SKU,Site,Quantite,Unite,PrixAchat,ValeurTotaleAchat\n";
+            products.forEach(p => {
+                csv += `"${p.category}","${p.name}","${p.sku}","${p.site}",${p.quantity},"${p.unit}",${p.prix_achat},${p.prix_achat * p.quantity}\n`;
+            });
+            let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            let url = URL.createObjectURL(blob);
+            let link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "inventaire_detaille.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- CATALOGUE & PRODUITS ---
+        function populateCategoryFilter() {
+            let catSelect = document.getElementById('filter-category');
+            catSelect.innerHTML = '<option value="">Toutes catégories</option>';
+            [...new Set(products.map(p => p.category))].forEach(cat => {
+                catSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+        }
+
+        function renderCatalog(forceAlertSort = false) {
+            let search = document.getElementById('search-product').value.toLowerCase();
+            let catFilter = document.getElementById('filter-category').value;
+            let statusFilter = document.getElementById('filter-status').value;
+            let tbody = document.getElementById('catalog-table-body');
+            tbody.innerHTML = '';
+
+            let filtered = products.filter(p => {
+                let matchSite = currentSite === 'Tous les sites' || p.site === currentSite;
+                let matchSearch = p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search);
+                let matchCat = !catFilter || p.category === catFilter;
+                let pStatus = p.quantity === 0 ? 'Rupture' : (p.quantity <= p.min_stock ? 'Stock Faible' : 'Normal');
+                return matchSite && matchSearch && matchCat && (!statusFilter || pStatus === statusFilter);
+            });
+
+            if (forceAlertSort) {
+                filtered.sort((a, b) => {
+                    let aAlert = (a.quantity <= a.min_stock) ? 0 : 1;
+                    let bAlert = (b.quantity <= b.min_stock) ? 0 : 1;
+                    return aAlert - bAlert;
+                });
+            }
+
+            document.getElementById('total-products-count-badge').innerText = `Total : ${filtered.length} produits`;
+
+            filtered.forEach(p => {
+                let photoHtml = p.photo ? `<img src="${p.photo}" class="w-10 h-10 rounded-lg object-cover border">` : `<div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400"><i class="fa-solid fa-box"></i></div>`;
+                let actionsHtml = currentUser.role !== 'Consultation' ? `
+                    <button onclick="openProductModal(${p.id})" class="text-blue-600 hover:text-blue-800 p-1"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="deleteProduct(${p.id})" class="text-red-600 hover:text-red-800 p-1"><i class="fa-solid fa-trash"></i></button>
+                ` : '<span class="text-xs text-gray-400">Lecture seule</span>';
+
+                let tr = document.createElement('tr');
+                if (p.quantity <= p.min_stock) {
+                    tr.className = "bg-amber-50/30";
+                }
+                tr.innerHTML = `
+                    <td class="py-4 px-4 flex items-center space-x-3">${photoHtml}<div><p class="font-medium text-gray-900">${p.name}</p></div></td>
+                    <td class="py-4 px-3 font-mono text-xs">${p.sku}</td>
+                    <td class="py-4 px-3"><span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-xs font-semibold">${p.site}</span></td>
+                    <td class="py-4 px-3"><span class="bg-gray-100 px-2 py-0.5 rounded text-xs">${p.category}</span></td>
+                    <td class="py-4 px-3">${formatMoney(p.prix_achat)}</td>
+                    <td class="py-4 px-3 font-semibold">${formatMoney(p.prix_vente)}</td>
+                    <td class="py-4 px-3 font-bold">${p.quantity}</td>
+                    <td class="py-4 px-3"><span class="${p.quantity <= p.min_stock ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'} px-2 py-0.5 rounded-full text-xs font-semibold">${p.quantity <= p.min_stock ? 'Stock Faible' : 'Normal'}</span></td>
+                    <td class="py-4 px-4 text-right">${actionsHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openProductModal(id = null) {
+            document.getElementById('product-form').reset();
+            document.getElementById('prod-id').value = '';
+            document.getElementById('prod-photo-base64').value = '';
+            document.getElementById('photo-preview-container').innerHTML = `<i class="fa-solid fa-image text-gray-400 text-base"></i>`;
+
+            if (id) {
+                let p = products.find(prod => prod.id === id);
+                if (p) {
+                    document.getElementById('prod-id').value = p.id;
+                    document.getElementById('prod-name').value = p.name;
+                    document.getElementById('prod-sku').value = p.sku;
+                    document.getElementById('prod-cat').value = p.category;
+                    document.getElementById('prod-site').value = p.site;
+                    document.getElementById('prod-unit').value = p.unit || 'Unité';
+                    document.getElementById('prod-p-achat').value = p.prix_achat;
+                    document.getElementById('prod-p-vente').value = p.prix_vente;
+                    document.getElementById('prod-qty').value = p.quantity;
+                    document.getElementById('prod-min').value = p.min_stock;
+                    document.getElementById('prod-note').value = p.note || '';
+                    if (p.photo) {
+                        document.getElementById('prod-photo-base64').value = p.photo;
+                        document.getElementById('photo-preview-container').innerHTML = `<img src="${p.photo}" class="w-full h-full object-cover">`;
+                    }
+                }
+            }
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function saveProduct(e) {
+            e.preventDefault();
+            let id = document.getElementById('prod-id').value;
+            let data = {
+                name: document.getElementById('prod-name').value,
+                sku: document.getElementById('prod-sku').value,
+                category: document.getElementById('prod-cat').value,
+                site: document.getElementById('prod-site').value,
+                unit: document.getElementById('prod-unit').value,
+                prix_achat: parseFloat(document.getElementById('prod-p-achat').value),
+                prix_vente: parseFloat(document.getElementById('prod-p-vente').value),
+                quantity: parseInt(document.getElementById('prod-qty').value),
+                min_stock: parseInt(document.getElementById('prod-min').value),
+                photo: document.getElementById('prod-photo-base64').value,
+                note: document.getElementById('prod-note').value
+            };
+
+            if (id !== "") {
+                let p = products.find(prod => prod.id == id);
+                Object.assign(p, data);
+            } else {
+                let newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+                products.push({ id: newId, ...data });
+            }
+
+            saveData();
+            closeModal('product-modal');
+            renderCatalog();
+            updateDashboard();
+            updateStockAlertBadge();
+        }
+
+        function deleteProduct(id) {
+            if (confirm("Supprimer cet article ?")) {
+                products = products.filter(p => p.id !== id);
+                saveData();
+                renderCatalog();
+                updateDashboard();
+                updateStockAlertBadge();
+            }
+        }
+
+        // --- MOUVEMENTS & COMPTEURS ---
+        function renderMovements() {
+            let filterType = document.getElementById('filter-mov-type').value;
+            let tbody = document.getElementById('movements-table-body');
+            tbody.innerHTML = '';
+
+            let countEntrees = movements.filter(m => m.type === 'ENTREE').length;
+            let countSorties = movements.filter(m => m.type === 'SORTIE').length;
+            let countTransferts = movements.filter(m => m.type === 'TRANSFERT').length;
+
+            document.getElementById('badge-count-entrees').innerText = `Entrées : ${countEntrees}`;
+            document.getElementById('badge-count-sorties').innerText = `Sorties : ${countSorties}`;
+            document.getElementById('badge-count-transferts').innerText = `Transferts : ${countTransferts}`;
+
+            movements.filter(m => !filterType || m.type === filterType).forEach(m => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="py-3 px-6 text-xs text-gray-500">${m.date}</td>
+                        <td class="py-3 px-4"><span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-semibold">${m.type}</span></td>
+                        <td class="py-3 px-4 font-medium">${m.productName}</td>
+                        <td class="py-3 px-4 font-bold">${m.qty}</td>
+                        <td class="py-3 px-4">${m.author}</td>
+                        <td class="py-3 px-6 text-gray-500">${m.reason}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function exportMovementsCSV() {
+            let csv = "Date,Type,Produit,Quantite,Auteur,Motif\n";
+            movements.forEach(m => {
+                csv += `"${m.date}","${m.type}","${m.productName}",${m.qty},"${m.author}","${m.reason}"\n`;
+            });
+            let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            let url = URL.createObjectURL(blob);
+            let link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "mouvements_stock.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function openMovementModal() {
+            let select = document.getElementById('mov-product');
+            select.innerHTML = '';
+            products.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.name} (Stock: ${p.quantity})</option>`;
+            });
+            document.getElementById('movement-modal').classList.remove('hidden');
+        }
+
+        async function saveMovement(e) {
+            e.preventDefault();
+            let prodId = parseInt(document.getElementById('mov-product').value);
+            let type = document.getElementById('mov-type').value;
+            let qty = parseInt(document.getElementById('mov-qty').value);
+            let reason = document.getElementById('mov-reason').value;
+
+            let product = products.find(p => p.id === prodId);
+            if (!product) return;
+            if (type === 'SORTIE' && product.quantity < qty) return alert("Stock insuffisant !");
+
+            let now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            let movData = {
+                date: now,
+                type: type,
+                productName: product.name,
+                qty: qty,
+                author: currentUser.name,
+                reason: reason
+            };
+
+            // Envoi du mouvement à l'API PHP
+            await fetch('http://localhost/stockpro-backend/api.php?endpoint=movements', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(movData)
+            });
+
+            closeModal('movement-modal');
+            loadDataFromDatabase();
+        }
+
+        // --- VENTES MANUELLES ---
+        function renderSales() {
+            let tbody = document.getElementById('sales-table-body');
+            tbody.innerHTML = '';
+            sales.forEach(s => {
+                let actionsHtml = currentUser.role !== 'Consultation' ? `<button onclick="deleteSale(${s.id})" class="text-red-600 p-1"><i class="fa-solid fa-trash"></i></button>` : '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="py-3 px-6 text-xs text-gray-500">${s.date}</td>
+                        <td class="py-3 px-4 font-medium">${s.productName}</td>
+                        <td class="py-3 px-4 font-bold">${s.qty}</td>
+                        <td class="py-3 px-4">${formatMoney(s.prixVenteUnitaire)}</td>
+                        <td class="py-3 px-4 font-semibold text-indigo-600">${formatMoney(s.totalCA)}</td>
+                        <td class="py-3 px-4 font-bold text-purple-600">${formatMoney(s.totalMarge)}</td>
+                        <td class="py-3 px-6 text-right">${actionsHtml}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openSaleModal() {
+            let select = document.getElementById('sale-product');
+            select.innerHTML = '';
+            products.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.name} - ${formatMoney(p.prix_vente)} (Stock: ${p.quantity})</option>`;
+            });
+            updateSalePriceInfo();
+            document.getElementById('sale-modal').classList.remove('hidden');
+        }
+
+        function updateSalePriceInfo() {
+            let prodId = parseInt(document.getElementById('sale-product').value);
+            let product = products.find(p => p.id === prodId);
+            if (!product) return;
+            let qty = parseInt(document.getElementById('sale-qty').value) || 1;
+            document.getElementById('sale-info-price').innerText = `Prix unitaire : ${formatMoney(product.prix_vente)}`;
+            document.getElementById('sale-info-margin').innerText = `Marge nette : ${formatMoney((product.prix_vente - product.prix_achat) * qty)}`;
+        }
+
+        document.getElementById('sale-qty').addEventListener('input', updateSalePriceInfo);
+
+        function saveSale(e) {
+            e.preventDefault();
+            let prodId = parseInt(document.getElementById('sale-product').value);
+            let qty = parseInt(document.getElementById('sale-qty').value);
+            let product = products.find(p => p.id === prodId);
+            if (!product || product.quantity < qty) return alert("Stock insuffisant !");
+
+            product.quantity -= qty;
+            let now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            sales.unshift({
+                id: sales.length + 1, date: now, productName: product.name, qty,
+                prixVenteUnitaire: product.prix_vente, prixAchatUnitaire: product.prix_achat,
+                totalCA: product.prix_vente * qty, totalMarge: (product.prix_vente - product.prix_achat) * qty
+            });
+            movements.unshift({ date: now, type: 'SORTIE', productName: product.name, qty, author: currentUser.name, reason: 'Vente manuelle' });
+            saveData();
+            closeModal('sale-modal');
+            renderSales();
+            updateDashboard();
+            updateStockAlertBadge();
+            alert("Vente manuelle enregistrée !");
+        }
+
+        function deleteSale(id) {
+            if (confirm("Supprimer cette vente ?")) {
+                sales = sales.filter(s => s.id !== id);
+                saveData();
+                renderSales();
+                updateDashboard();
+                updateStockAlertBadge();
+            }
+        }
+
+        // --- UTILISATEURS ---
+        function renderUsers() {
+            let tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="py-3 px-6 font-medium">${u.name}</td>
+                        <td class="py-3 px-4 font-mono text-xs">${u.login}</td>
+                        <td class="py-3 px-4"><span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-semibold">${u.role}</span></td>
+                        <td class="py-3 px-4 text-xs text-gray-500">${u.rights}</td>
+                        <td class="py-3 px-4"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">${u.status}</span></td>
+                        <td class="py-3 px-6 text-right space-x-1">
+                            <button onclick="openUserModal(${u.id})" class="text-blue-600 hover:text-blue-800 p-1"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteUser(${u.id})" class="text-red-600 hover:text-red-800 p-1"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openUserModal(id = null) {
+            document.getElementById('user-form').reset();
+            document.getElementById('usr-id').value = '';
+            if (id) {
+                let u = users.find(usr => usr.id === id);
+                if (u) {
+                    document.getElementById('user-modal-title').innerText = "Modifier l'utilisateur";
+                    document.getElementById('usr-id').value = u.id;
+                    document.getElementById('usr-name').value = u.name;
+                    document.getElementById('usr-login').value = u.login;
+                    document.getElementById('usr-role').value = u.role;
+                    document.getElementById('usr-pass').value = u.pass || '';
+                }
+            } else {
+                document.getElementById('user-modal-title').innerText = "Ajouter un utilisateur";
+            }
+            document.getElementById('user-modal').classList.remove('hidden');
+        }
+
+        function saveUser(e) {
+            e.preventDefault();
+            let id = document.getElementById('usr-id').value;
+            let name = document.getElementById('usr-name').value;
+            let login = document.getElementById('usr-login').value;
+            let role = document.getElementById('usr-role').value;
+            let pass = document.getElementById('usr-pass').value;
+
+            if (!pass && id === "") {
+                alert("Veuillez saisir un mot de passe pour le nouvel utilisateur.");
+                return;
+            }
+
+            if (id !== "") {
+                let u = users.find(usr => usr.id == id);
+                if (u) { 
+                    u.name = name; 
+                    u.login = login; 
+                    u.role = role; 
+                    if(pass) u.pass = pass; 
+                }
+            } else {
+                users.push({ id: users.length + 1, name, login, role, pass, rights: 'Accès personnalisé', status: 'Actif' });
+            }
+            saveData();
+            closeModal('user-modal');
+            renderUsers();
+        }
+
+        function deleteUser(id) {
+            if (users.length <= 1) return alert("Impossible de supprimer le seul utilisateur.");
+            if (confirm("Supprimer cet utilisateur ?")) {
+                users = users.filter(u => u.id !== id);
+                saveData();
+                renderUsers();
+            }
+        }
+
+        function renderLogs() {
+            let container = document.getElementById('logs-container');
+            container.innerHTML = '';
+            logs.forEach(l => {
+                container.innerHTML += `<div class="p-3 bg-gray-50 rounded-xl border flex justify-between items-center text-xs"><span class="font-medium">${l.text}</span><span class="text-gray-400 font-mono">${l.date}</span></div>`;
+            });
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function sendWhatsAppStockAlert() {
+            let alerts = products.filter(p => p.quantity <= p.min_stock);
+            if (alerts.length === 0) return alert("Aucun produit en stock critique !");
+            let msg = "*🚨 ALERTE STOCK PRO*\n\n";
+            alerts.forEach(p => { msg += `• *${p.name}* (Site: ${p.site}) : Dispo *${p.quantity}*\n`; });
+            window.open("https://wa.me/?text=" + encodeURIComponent(msg), '_blank');
+        }
+
+        // Initialisation de la liste des catégories au chargement
+        populateCategoryFilter();
+    </script>
+</body>
+</html>
