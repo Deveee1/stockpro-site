@@ -1,1 +1,865 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockPro - Logiciel de Gestion Commerciale, Stocks & Caisse ERP</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
 
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+
+    <!-- BANNIÈRE ESSAI GRATUIT / DEMO -->
+    <div id="demo-banner" class="hidden bg-amber-500 text-slate-950 px-4 py-2.5 font-semibold text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-between sticky top-0 z-50 shadow-md">
+        <div class="flex items-center space-x-2 mb-2 sm:mb-0">
+            <i class="fa-solid fa-circle-info text-base"></i>
+            <span>Mode Démo Actif : Vous testez l'application en accès restreint.</span>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="#pricing" class="bg-slate-950 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition hover:bg-slate-800">
+                🚀 S'abonner pour tout débloquer
+            </a>
+            <button onclick="exitDemoMode()" class="underline text-xs font-bold cursor-pointer">Quitter</button>
+        </div>
+    </div>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo(0,0)">
+                <div class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xl shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <span class="text-xl font-extrabold text-slate-900 tracking-tight">Stock<span class="text-blue-600">Pro</span> <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md ml-1"></span></span>
+            </div>
+            <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
+                <a href="#app-preview" class="hover:text-blue-600 transition">Modules & Processus</a>
+                <a href="#pricing" class="hover:text-blue-600 transition">Tarifs & Abonnements</a>
+                <a href="#footer-contact" class="hover:text-blue-600 transition">Contact</a>
+            </nav>
+            <div class="flex items-center space-x-3">
+                <button onclick="openLoginModal()" class="text-sm font-semibold text-blue-600 hover:text-blue-700 px-3 py-2 rounded-xl transition cursor-pointer">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> Se connecter
+                </button>
+                <button onclick="startFreeDemo()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition shadow-lg shadow-blue-600/20 cursor-pointer">
+                    Essai Gratuit
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="relative overflow-hidden pt-16 pb-20 bg-gradient-to-b from-white via-slate-50 to-blue-50/20">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <h1 class="text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight max-w-4xl mx-auto leading-tight">
+                Pilotez vos <span class="text-blue-600">stocks</span>, votre <span class="text-emerald-600">caisse</span> et vos <span class="text-purple-600">ventes</span>.
+            </h1>
+            <p class="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                La solution ERP & Gestion Commerciale idéale pour entrepreneur, PME, propriétaire de boutique, responsable de grandes distributions. Suivez vos flux en temps réel et encaissez rapidement.
+            </p>
+            <div class="mt-8 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <a href="#pricing" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl transition shadow-xl shadow-blue-600/30 text-base">
+                    Découvrir les abonnements
+                </a>
+                <button onclick="startFreeDemo()" class="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold px-8 py-4 rounded-xl transition text-base cursor-pointer">
+                    <i class="fa-solid fa-play text-blue-600 mr-2"></i> Essai Gratuit
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION PRÉSENTATION DES MODULES -->
+    <section id="app-preview" class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-6 space-y-28">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3">Gérez intégralement votre processus d'entreprise</h2>
+                <p class="mt-4 text-slate-600 text-sm">Découvrez l'ergonomie de nos modules de gestion commerciale à travers une interface structurée et intuitive.</p>
+            </div>
+
+            <!-- 1. Tableau de bord -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="inline-flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-chart-pie"></i> <span>Module 01</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Tableau de bord et vue d'ensemble</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Suivez en temps réel la valeur de votre stock, les alertes de réapprovisionnement et le chiffre d'affaires global de votre structure.
+                    </p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Multiples contrôles et indicateurs de stock dynamiques</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Alertes automatiques de réapprovisionnement urgent</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Graphiques d'évolution du Chiffre d'Affaires</span></li>
+                    </ul>
+                </div>
+                <div class="lg:col-span-7">
+                    <div class="p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\1.Tableau_de_bord.png" alt="Tableau de bord StockPro" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Caisse (POS) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-7 order-2 lg:order-1">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\2.Caisse.png" alt="Caisse POS" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+                <div class="lg:col-span-5 space-y-6 order-1 lg:order-2">
+                    <div class="inline-flex items-center space-x-2 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-cash-register"></i> <span>Module 02</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Caisse et Vente Rapide (POS)</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Interface de caisse intuitive pour encaisser vos clients au comptoir, gérer le panier en temps réel et déduire instantanément le stock.</p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Recherche rapide d'articles par SKU ou nom</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Gestion des quantités et mise à jour automatique du stock</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Validation sécurisée des encaissements</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 3. Catalogue Produits -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="inline-flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-box-archive"></i> <span>Module 03</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Catalogue Produits & Articles</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Gestion rigoureuse des fiches articles, des prix d'achat, des prix de vente et suivi précis des seuils d'alerte.</p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Suivi des statuts (Normal, Stock faible, Rupture)</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Import et export au format CSV facilités</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Multi-devises intégrées (FCFA, Euros, Dollars)</span></li>
+                    </ul>
+                </div>
+                <div class="lg:col-span-7">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\3.Catalogue_produits.png" alt="Catalogue Produits" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Commandes & Réceptions -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-7 order-2 lg:order-1">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\4.Commandes_et_réceptions.png" alt="Commandes et réceptions" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+                <div class="lg:col-span-5 space-y-6 order-1 lg:order-2">
+                    <div class="inline-flex items-center space-x-2 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-truck-ramp-box"></i> <span>Module 04</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Commandes & Réceptions Fournisseurs</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Suivi rigoureux des bons de commande et gestion des réceptions partielles ou complètes de marchandises.</p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Édition de bons de commande multi-produits</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Validation des réceptions partielles ou totales</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Mise à jour automatique des stocks</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 5. Clients & Fournisseurs -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="inline-flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-address-book"></i> <span>Module 05</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Base de données Clients & Fournisseurs</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Centralisation de vos contacts, numéros de téléphone, comptes WhatsApp et adresses e-mail.</p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Filtres rapides par type de tiers (Client / Fournisseur)</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Recherche instantanée dans l'annuaire</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Gestion facilitée des relations d'achats et de ventes</span></li>
+                    </ul>
+                </div>
+                <div class="lg:col-span-7">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\5.Clients_et_fournisseurs.png" alt="Clients et fournisseurs" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Mouvements & Transferts -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-7 order-2 lg:order-1">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\6.Mouvements_et_transferts.png" alt="Mouvements et transferts" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+                <div class="lg:col-span-5 space-y-6 order-1 lg:order-2">
+                    <div class="inline-flex items-center space-x-2 text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-right-left"></i> <span>Module 06</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Mouvements & Transferts de stock</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Historique complet et traçabilité des entrées, sorties et transferts inter-sites entre vos différents dépôts.</p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Suivi des flux par type (Entrée, Sortie, Transfert)</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Traçabilité par auteur et motif de mouvement</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Export des données de mouvements en CSV</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 7. Ventes & Marges -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="inline-flex items-center space-x-2 text-purple-600 bg-purple-50 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-receipt"></i> <span>Module 07</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Gestion des Ventes & Marges</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Analyse détaillée du chiffre d'affaires, des prix unitaires et des bénéfices nets réalisés sur chaque transaction.</p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Calcul automatisé des marges nettes</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Enregistrement des ventes manuelles</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Historique des transactions commerciales</span></li>
+                    </ul>
+                </div>
+                <div class="lg:col-span-7">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\7.Ventes_et_marges.png" alt="Ventes et marges" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. Rapports de Stocks -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-7 order-2 lg:order-1">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\8.Rapports_de_Stocks.png" alt="Rapports de Stocks" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+                <div class="lg:col-span-5 space-y-6 order-1 lg:order-2">
+                    <div class="inline-flex items-center space-x-2 text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-chart-column"></i> <span>Module 08</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Rapports & Contrôle des Stocks</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Inventaires détaillés, calcul du coût moyen du stock, valorisation financière globale et exportations CSV.</p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Volume total d'articles et valeur marchande globale</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Filtres par site et recherche multi-critères</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Extraction d'inventaire format Excel / CSV</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 9. Utilisateurs & Droits -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="inline-flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-users-gear"></i> <span>Module 09</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Gestion des Utilisateurs & Droits</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Définition des rôles (Administrateur, Gestionnaire, Agent) et sécurisation des accès selon les abonnements.</p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Attribution des droits d'accès personnalisés</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Gestion des statuts actifs / inactifs</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Sécurité renforcée multi-utilisateurs</span></li>
+                    </ul>
+                </div>
+                <div class="lg:col-span-7">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\9.Utilisateurs_et_droits.png" alt="Utilisateurs et droits" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10. Journal d'Activité (Logs) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-7 order-2 lg:order-1">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden p-3 bg-slate-900/80">
+                        <img src="C:\xampp\htdocs\stockpro-backend\Images\10.Logs.png" alt="Journal d'Activité" class="w-full h-auto rounded-lg shadow border border-slate-800">
+                    </div>
+                </div>
+                <div class="lg:col-span-5 space-y-6 order-1 lg:order-2">
+                    <div class="inline-flex items-center space-x-2 text-slate-700 bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold">
+                        <i class="fa-solid fa-clock-rotate-left"></i> <span>Module 10</span>
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Journal d'Activité Système (Logs)</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Traçabilité complète des actions, des connexions et des modifications effectuées par les différents utilisateurs.</p>
+                    <ul class="space-y-3 text-sm text-slate-700">
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Horodatage précis de toutes les connexions</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Historique infalsifiable des actions système</span></li>
+                        <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Sécurité et audit de conformité interne</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION TARIFS & ABONNEMENTS -->
+    <section id="pricing" class="py-24 bg-slate-50 border-t border-slate-200 text-slate-800">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center max-w-3xl mx-auto">
+                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Des formules d'abonnement adaptées</h2>
+                <p class="mt-4 text-slate-600">Choisissez la formule correspondant à votre structure. Paiement sécurisé vers nos comptes marchands officiels.</p>
+                
+                <!-- Toggle Mensuel / Annuel -->
+                <div class="mt-8 inline-flex items-center bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
+                    <button onclick="setBilling('monthly')" id="btn-monthly" class="px-5 py-2 rounded-lg text-sm font-semibold transition bg-blue-600 text-white shadow cursor-pointer">Mensuel</button>
+                    <button onclick="setBilling('annual')" id="btn-annual" class="px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:text-slate-900 cursor-pointer">Annuel <span class="text-xs text-emerald-600 font-bold ml-1">(-20%)</span></button>
+                </div>
+            </div>
+
+            <!-- GRILLE DES PRIX -->
+            <div class="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+                <!-- Plan Starter -->
+                <div class="bg-white rounded-3xl p-8 border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-lg transition">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-100 px-3 py-1 rounded-full">Essentiel</span>
+                        <h3 class="text-2xl font-bold text-slate-900 mt-4">Starter</h3>
+                        <p class="text-slate-600 text-sm mt-1">Idéal pour les petits commerces.</p>
+                        <div class="mt-6">
+                            <span class="text-4xl font-extrabold text-slate-900 price-starter">10 000</span>
+                            <span class="text-slate-500 text-sm unit-starter"> FCFA / mois</span>
+                        </div>
+                        <ul class="mt-8 space-y-4 text-sm text-slate-700">
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Jusqu'à 500 produits</span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>1 Utilisateur Admin</span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>500 Alertes et reçus WhatsApp</span></li>
+                            <li class="flex items-start space-x-3 text-rose-600"><i class="fa-solid fa-ban mt-1"></i><span><strong>Onglets masqués :</strong> <br><em>"Commandes & Réceptions", "Clients & Fournisseurs", "Utilisateurs & Droits"</em></span></li>
+                            <li class="flex items-start space-x-3 text-rose-600"><i class="fa-solid fa-ban mt-1"></i><span><strong>Paramétrages masqués :</strong> <br><em>"ENTREPRISE" & "SITE/MAGASIN"</em></span></li>
+                        </ul>
+                    </div>
+                    <button onclick="openCheckoutModal('Starter', 10000)" class="mt-8 w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 rounded-xl transition cursor-pointer">Choisir Starter</button>
+                </div>
+
+                <!-- Plan Business Pro (Populaire) -->
+                <div class="bg-gradient-to-b from-blue-600 to-indigo-700 text-white rounded-3xl p-8 border border-blue-400 flex flex-col justify-between shadow-2xl relative">
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-900 text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow">Le plus populaire</div>
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-blue-100 bg-white/20 px-3 py-1 rounded-full">Professionnel</span>
+                        <h3 class="text-2xl font-bold mt-4">Business Pro</h3>
+                        <p class="text-blue-100 text-sm mt-1">Pour les PME avec suivi des ventes et marges.</p>
+                        <div class="mt-6">
+                            <span class="text-4xl font-extrabold price-pro">25 000</span>
+                            <span class="text-blue-100 text-sm unit-pro"> FCFA / mois</span>
+                        </div>
+                        <ul class="mt-8 space-y-4 text-sm text-blue-50">
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-amber-300 mt-1"></i><span>Produits illimités</span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-amber-300 mt-1"></i><span>Jusqu'à 5 Utilisateurs</span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-amber-300 mt-1"></i><span>Alertes & reçus WhatsApp illimités</span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-amber-300 mt-1"></i><span><strong>Onglets supplémentaires :</strong> <br>"Commandes & Réceptions", "Clients & Fournisseurs", "Utilisateurs & Droits"</span></li>
+                            <li class="flex items-start space-x-3 opacity-80"><i class="fa-solid fa-ban mt-1"></i><span>Paramétrages masqués : "ENTREPRISE" & "SITE/MAGASIN"</span></li>
+                        </ul>
+                    </div>
+                    <button onclick="openCheckoutModal('Business Pro', 25000)" class="mt-8 w-full bg-white hover:bg-slate-100 text-blue-700 font-semibold py-3 rounded-xl transition shadow-lg cursor-pointer">Commencer l'essai Pro</button>
+                </div>
+
+                <!-- Plan Enterprise -->
+                <div class="bg-white rounded-3xl p-8 border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-lg transition">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-purple-600 bg-purple-100 px-3 py-1 rounded-full">Sur-mesure</span>
+                        <h3 class="text-2xl font-bold text-slate-900 mt-4">Entreprise</h3>
+                        <p class="text-slate-600 text-sm mt-1">Pour les grandes structures multi-dépôts.</p>
+                        <div class="mt-6">
+                            <span class="text-4xl font-extrabold text-slate-900 price-enterprise">60 000</span>
+                            <span class="text-slate-500 text-sm unit-enterprise"> FCFA / mois</span>
+                        </div>
+                        <ul class="mt-8 space-y-4 text-sm text-slate-700">
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Produits illimités</span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span>Utilisateurs illimités</span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span><strong>Onglets supplémentaires :</strong> <br>"Commandes & Réceptions", "Clients & Fournisseurs", "Utilisateurs & Droits"</span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span><strong>Gestion du type d'entreprise</strong> (SARL ou Distribution)</span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span><strong>Gestion des sites et magasins</strong></span></li>
+                            <li class="flex items-start space-x-3"><i class="fa-solid fa-check text-emerald-600 mt-1"></i><span><strong>Personnalisations possibles (Nous contacter)</strong></span></li>
+                        </ul>
+                    </div>
+                    <button onclick="openCheckoutModal('Enterprise', 60000)" class="mt-8 w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 rounded-xl transition cursor-pointer">Choisir Entreprise</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MODALE DE CONNEXION -->
+    <div id="login-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+            <button onclick="closeModal('login-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="text-center mb-6">
+                <div class="bg-blue-600 text-white w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold mx-auto mb-3 shadow-lg">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900">Connexion à StockPro</h3>
+                <p class="text-xs text-slate-500 mt-1">Saisissez vos identifiants pour accéder à l'application</p>
+            </div>
+            <form onsubmit="handleAppLogin(event)" class="space-y-4 text-xs sm:text-sm">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Identifiant</label>
+                    <input type="text" id="login-input-user" required placeholder="ex: admin" class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Mot de passe</label>
+                    <input type="password" id="login-input-pass" required placeholder="••••••••" class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition shadow-md cursor-pointer">
+                    Se connecter & Ouvrir l'application
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE PAIEMENT AUTOMATIQUE DES ABONNEMENTS -->
+    <div id="checkout-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white text-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900">Paiement de l'abonnement</h3>
+                    <p class="text-xs text-blue-600 font-semibold" id="checkout-plan-title">Business Pro - 25 000 FCFA</p>
+                </div>
+                <button onclick="closeModal('checkout-modal')" class="text-slate-400 hover:text-slate-700 text-lg cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form id="payment-form" onsubmit="processPayment(event)" class="space-y-4">
+                <input type="hidden" id="pay-plan-name">
+                <input type="hidden" id="pay-plan-amount">
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nom / Entreprise</label>
+                        <input type="text" id="pay-client-name" required placeholder="ex: Gabon Commerce" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">E-mail</label>
+                        <input type="email" id="pay-client-email" required placeholder="client@domaine.ga" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- MOYEN DE PAIEMENT AVEC DESTINATIONS AUTOMATIQUES -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-2">Moyen de paiement (Gabon)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <!-- Airtel Money -->
+                        <label class="cursor-pointer">
+                            <input type="radio" name="pay_method" value="Airtel Money" checked onchange="togglePaymentFields()" class="peer hidden">
+                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl peer-checked:border-red-500 peer-checked:bg-red-50 text-center transition">
+                                <i class="fa-solid fa-mobile-screen-button text-red-500 text-lg block mb-1"></i>
+                                <span class="text-xs font-bold text-slate-800">Airtel Money</span>
+                            </div>
+                        </label>
+                        <!-- Moov Money -->
+                        <label class="cursor-pointer">
+                            <input type="radio" name="pay_method" value="Moov Money" onchange="togglePaymentFields()" class="peer hidden">
+                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl peer-checked:border-blue-500 peer-checked:bg-blue-50 text-center transition">
+                                <i class="fa-solid fa-wallet text-blue-500 text-lg block mb-1"></i>
+                                <span class="text-xs font-bold text-slate-800">Moov Money</span>
+                            </div>
+                        </label>
+                        <!-- Carte Prépayée -->
+                        <label class="cursor-pointer">
+                            <input type="radio" name="pay_method" value="Carte Prépayée" onchange="togglePaymentFields()" class="peer hidden">
+                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl peer-checked:border-emerald-500 peer-checked:bg-emerald-50 text-center transition">
+                                <i class="fa-solid fa-credit-card text-emerald-500 text-lg block mb-1"></i>
+                                <span class="text-xs font-bold text-slate-800">Carte Prépayée</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Affichage dynamique du numéro marchand / compte cible -->
+                <div id="routing-info-box" class="bg-blue-50 border border-blue-200 p-3 rounded-xl text-xs text-blue-900 font-medium">
+                    📍 Le paiement sera automatiquement acheminé vers le compte marchand Airtel : <strong class="font-mono text-blue-700">+241 77 72 50 25</strong>
+                </div>
+
+                <!-- Numéro Mobile Money client -->
+                <div id="phone-input-block">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Votre numéro Mobile Money de débit (+241)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-xs text-slate-500">+241</span>
+                        <input type="tel" id="pay-phone" placeholder="074 00 00 00" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Carte Prépayée -->
+                <div id="card-input-block" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Numéro de la carte</label>
+                        <input type="text" id="pay-card-num" placeholder="4000 1234 5678 9010" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Expiration</label>
+                            <input type="text" id="pay-card-exp" placeholder="12/28" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">CVV</label>
+                            <input type="text" id="pay-card-cvv" placeholder="123" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('checkout-modal')" class="px-4 py-2 text-slate-600 text-xs font-semibold cursor-pointer">Annuler</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl transition text-sm flex items-center space-x-2 cursor-pointer shadow">
+                        <i class="fa-solid fa-lock text-xs"></i>
+                        <span>Payer <span id="pay-btn-label">25 000 FCFA</span></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DU REÇU IMPRIMABLE / WHATSAPP / EMAIL -->
+    <div id="receipt-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white text-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative my-8">
+            
+            <!-- REÇU -->
+            <div id="printable-receipt" class="bg-white p-4 rounded-2xl border border-slate-200">
+                <div class="text-center border-b pb-4 mb-4">
+                    <div class="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold mx-auto mb-2 shadow">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+                    <h2 class="text-xl font-extrabold text-slate-900">StockPro Enterprise</h2>
+                    <p class="text-xs text-slate-500">Service Facturation & Abonnements</p>
+                    <span class="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full mt-2">
+                        <i class="fa-solid fa-check-circle mr-1"></i> PAIEMENT VALIDÉ
+                    </span>
+                </div>
+
+                <div class="space-y-2 text-xs border-b pb-4 mb-4">
+                    <div class="flex justify-between"><span class="text-slate-500">N° Reçu :</span><span id="rec-id" class="font-mono font-bold">#REC-001</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Date :</span><span id="rec-date">2026-10-20</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Client :</span><span id="rec-client" class="font-bold">Entreprise</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Mode & Destination :</span><span id="rec-method" class="font-semibold text-blue-600">Airtel Money (+24177725025)</span></div>
+                </div>
+
+                <table class="w-full text-xs text-left mb-4">
+                    <thead>
+                        <tr class="bg-slate-100 border-b">
+                            <th class="py-2 px-2 font-bold">Formule</th>
+                            <th class="py-2 px-2 text-right font-bold">Montant</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="py-2 px-2" id="rec-plan-name">Abonnement Business Pro (1 Mois)</td>
+                            <td class="py-2 px-2 text-right font-bold" id="rec-plan-price">25 000 FCFA</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="bg-slate-50 p-3 rounded-xl space-y-1 text-xs border border-slate-100 mb-4">
+                    <div class="flex justify-between font-extrabold text-slate-900 text-sm">
+                        <span>Total :</span>
+                        <span id="rec-total" class="text-emerald-600">25 000 FCFA</span>
+                    </div>
+                </div>
+
+                <div class="text-center text-[10px] text-slate-400">
+                    Votre abonnement et vos accès ont été mis à jour avec succès!
+                </div>
+            </div>
+
+            <!-- BOUTONS D'ACTION DU REÇU -->
+            <div class="mt-6 space-y-2 no-print">
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="shareWhatsAppReceipt()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center space-x-1.5 shadow cursor-pointer">
+                        <i class="fa-brands fa-whatsapp text-base"></i><span>WhatsApp</span>
+                    </button>
+                    <button onclick="sendEmailReceipt()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center space-x-1.5 shadow cursor-pointer">
+                        <i class="fa-solid fa-envelope text-base"></i><span>E-mail</span>
+                    </button>
+                </div>
+                <button onclick="window.print()" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl transition flex items-center justify-center space-x-2 cursor-pointer">
+                    <i class="fa-solid fa-print"></i><span>Imprimer le Reçu</span>
+                </button>
+                <button onclick="closeModal('receipt-modal')" class="w-full border border-slate-300 text-slate-600 text-xs font-semibold py-2 rounded-xl hover:bg-slate-100 cursor-pointer">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer id="footer-contact" class="bg-slate-950 text-slate-400 pt-16 pb-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 pb-12 border-b border-slate-800">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="bg-blue-600 text-white w-9 h-9 rounded-xl flex items-center justify-center font-bold">
+                            <i class="fa-solid fa-boxes-stacked text-base"></i>
+                        </div>
+                        <span class="text-white font-bold text-lg">StockPro Entreprise</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-6 max-w-sm">
+                        Besoin d'aide ou de conseils pour choisir votre formule d'abonnement ou configurer votre ERP ? Contactez notre équipe support.
+                    </p>
+                    <div class="space-y-3 text-xs">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-phone text-blue-500 text-sm w-4"></i>
+                            <span class="text-slate-200 font-mono">+241 77 72 50 25</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-envelope text-blue-500 text-sm w-4"></i>
+                            <span class="text-slate-200">s.g.d.r2021@gmail.com</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-location-dot text-blue-500 text-sm w-4"></i>
+                            <span class="text-slate-200">Libreville, Gabon</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <h4 class="text-white font-bold text-sm mb-4"><i class="fa-solid fa-paper-plane text-blue-500 mr-2"></i>Contactez-nous</h4>
+                    <form onsubmit="handleFooterContact(event)" class="space-y-3 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" required placeholder="Votre nom" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none">
+                            <input type="email" required placeholder="Votre e-mail" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none">
+                        </div>
+                        <textarea rows="3" required placeholder="Votre message..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"></textarea>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl transition cursor-pointer">
+                            Envoyer
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
+                <p>© 2026 StockPro Entreprise. Tous droits réservés.</p>
+                <div class="flex space-x-6 mt-4 sm:mt-0">
+                    <a href="#pricing" class="hover:text-slate-300">Abonnements</a>
+                    <a href="#app-preview" class="hover:text-slate-300">Interfaces</a>
+                    <a href="#footer-contact" class="hover:text-slate-300">Support</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script>
+        let isAnnual = false;
+        let lastTransaction = null;
+        const appUrl = "gestion_de_stock_pro_Version%20PME_V4.2.html";
+
+        function startFreeDemo() {
+            document.getElementById('demo-banner').classList.remove('hidden');
+            alert("Redirection vers l'application StockPro en mode démo.");
+            window.location.href = appUrl;
+        }
+
+        function exitDemoMode() {
+            document.getElementById('demo-banner').classList.add('hidden');
+        }
+
+        function openLoginModal() {
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
+        function handleAppLogin(e) {
+            e.preventDefault();
+            alert("Authentification réussie ! Redirection vers l'application...");
+            closeModal('login-modal');
+            window.location.href = appUrl;
+        }
+
+        function setBilling(type) {
+            isAnnual = (type === 'annual');
+            let btnM = document.getElementById('btn-monthly');
+            let btnA = document.getElementById('btn-annual');
+
+            if (isAnnual) {
+                btnA.className = "px-5 py-2 rounded-lg text-sm font-semibold transition bg-blue-600 text-white shadow cursor-pointer";
+                btnM.className = "px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:text-slate-900 cursor-pointer";
+
+                document.querySelector('.price-starter').innerText = "96 000";
+                document.querySelector('.unit-starter').innerText = " FCFA / an";
+
+                document.querySelector('.price-pro').innerText = "240 000";
+                document.querySelector('.unit-pro').innerText = " FCFA / an";
+
+                document.querySelector('.price-enterprise').innerText = "576 000";
+                document.querySelector('.unit-enterprise').innerText = " FCFA / an";
+            } else {
+                btnM.className = "px-5 py-2 rounded-lg text-sm font-semibold transition bg-blue-600 text-white shadow cursor-pointer";
+                btnA.className = "px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:text-slate-900 cursor-pointer";
+
+                document.querySelector('.price-starter').innerText = "10 000";
+                document.querySelector('.unit-starter').innerText = " FCFA / mois";
+
+                document.querySelector('.price-pro').innerText = "25 000";
+                document.querySelector('.unit-pro').innerText = " FCFA / mois";
+
+                document.querySelector('.price-enterprise').innerText = "60 000";
+                document.querySelector('.unit-enterprise').innerText = " FCFA / mois";
+            }
+        }
+
+        // Fonction de sélection de plan connectée au module de paiement automatique
+        function selectPlan(planName, baseAmount) {
+            openCheckoutModal(planName, baseAmount);
+        }
+
+        function openCheckoutModal(planName, baseAmount) {
+            let finalAmount = isAnnual ? baseAmount * 9.6 : baseAmount;
+            let billingText = isAnnual ? `${finalAmount.toLocaleString('fr-FR')} FCFA / an` : `${finalAmount.toLocaleString('fr-FR')} FCFA / mois`;
+
+            document.getElementById('pay-plan-name').value = planName + (isAnnual ? ' (Annuel)' : ' (Mensuel)');
+            document.getElementById('pay-plan-amount').value = finalAmount;
+            document.getElementById('checkout-plan-title').innerText = `${planName} - ${billingText}`;
+            document.getElementById('pay-btn-label').innerText = `${finalAmount.toLocaleString('fr-FR')} FCFA`;
+            document.getElementById('checkout-modal').classList.remove('hidden');
+        }
+
+        // Gestion dynamique de l'affichage selon le mode de paiement et routage automatique
+        function togglePaymentFields() {
+            let selectedMethod = document.querySelector('input[name="pay_method"]:checked').value;
+            let phoneBlock = document.getElementById('phone-input-block');
+            let cardBlock = document.getElementById('card-input-block');
+            let routingBox = document.getElementById('routing-info-box');
+
+            if (selectedMethod === 'Carte Prépayée') {
+                phoneBlock.classList.add('hidden');
+                cardBlock.classList.remove('hidden');
+                routingBox.innerHTML = `💳 Le paiement sera automatiquement acheminé vers le compte sécurisé : <strong class="font-mono text-emerald-700">0023650564</strong>`;
+            } else if (selectedMethod === 'Moov Money') {
+                cardBlock.classList.add('hidden');
+                phoneBlock.classList.remove('hidden');
+                routingBox.innerHTML = `📍 Le paiement sera automatiquement acheminé vers le compte marchand Moov : <strong class="font-mono text-blue-700">+241 62 70 95 95</strong>`;
+            } else {
+                cardBlock.classList.add('hidden');
+                phoneBlock.classList.remove('hidden');
+                routingBox.innerHTML = `📍 Le paiement sera automatiquement acheminé vers le compte marchand Airtel : <strong class="font-mono text-blue-700">+241 77 72 50 25</strong>`;
+            }
+        }
+
+        function processPayment(e) {
+            e.preventDefault();
+            let planName = document.getElementById('pay-plan-name').value;
+            let amount = parseInt(document.getElementById('pay-plan-amount').value);
+            let clientName = document.getElementById('pay-client-name').value;
+            let clientEmail = document.getElementById('pay-client-email').value;
+            let method = document.querySelector('input[name="pay_method"]:checked').value;
+
+            let destinationAccount = "";
+            let methodDisplay = "";
+            if (method === 'Airtel Money') {
+                destinationAccount = "+24177725025";
+                methodDisplay = `Airtel Money (Vers +241 77 72 50 25)`;
+            } else if (method === 'Moov Money') {
+                destinationAccount = "+24162709595";
+                methodDisplay = `Moov Money (Vers +241 62 70 95 95)`;
+            } else {
+                destinationAccount = "0023650564";
+                methodDisplay = `Carte Prépayée (Compte 0023650564)`;
+            }
+
+            let recId = "REC-" + Math.floor(1000 + Math.random() * 9000);
+            let now = new Date().toISOString().slice(0, 10);
+
+            lastTransaction = {
+                id: recId,
+                date: now,
+                client: clientName,
+                email: clientEmail,
+                method: methodDisplay,
+                plan: planName,
+                amount: amount,
+                destination: destinationAccount
+            };
+
+            applySubscriptionRules(planName);
+
+            document.getElementById('rec-id').innerText = "#" + lastTransaction.id;
+            document.getElementById('rec-date').innerText = lastTransaction.date;
+            document.getElementById('rec-client').innerText = lastTransaction.client;
+            document.getElementById('rec-method').innerText = lastTransaction.method;
+            document.getElementById('rec-plan-name').innerText = `Abonnement ${planName}`;
+            document.getElementById('rec-plan-price').innerText = `${amount.toLocaleString('fr-FR')} FCFA`;
+            document.getElementById('rec-total').innerText = `${amount.toLocaleString('fr-FR')} FCFA`;
+
+            closeModal('checkout-modal');
+            document.getElementById('receipt-modal').classList.remove('hidden');
+        }
+
+        function applySubscriptionRules(planName) {
+            let limits = {};
+            if (planName.includes('Starter')) {
+                limits = { 
+                    maxProducts: 500, 
+                    maxUsers: 1, // Admin unique
+                    whatsappLimit: 500, 
+                    hiddenTabs: ["Commandes & Réceptions", "Clients & Fournisseurs", "Utilisateurs & Droits"], 
+                    hideEnterpriseAndSiteFields: true 
+                };
+            } else if (planName.includes('Business Pro')) {
+                limits = { 
+                    maxProducts: Infinity, 
+                    maxUsers: 5, 
+                    whatsappLimit: Infinity, 
+                    hiddenTabs: [], 
+                    hideEnterpriseAndSiteFields: true 
+                };
+            } else {
+                limits = { 
+                    maxProducts: Infinity, 
+                    maxUsers: Infinity, 
+                    whatsappLimit: Infinity, 
+                    hiddenTabs: [], 
+                    hideEnterpriseAndSiteFields: false 
+                };
+            }
+
+            localStorage.setItem('stockpro_subscription', JSON.stringify({
+                plan: planName,
+                limits: limits,
+                activeUntil: new Date(new Date().setMonth(new Date().getMonth() + (planName.includes('Annuel') ? 12 : 1))).toISOString()
+            }));
+        }
+
+        function shareWhatsAppReceipt() {
+            if (!lastTransaction) return;
+            let msg = `*🧾 REÇU DE PAIEMENT - STOCKPRO*\n\n`
+                + `*N° Reçu :* ${lastTransaction.id}\n`
+                + `*Client :* ${lastTransaction.client}\n`
+                + `*Formule :* ${lastTransaction.plan}\n`
+                + `*Règlement :* ${lastTransaction.method}\n`
+                + `*Montant :* ${lastTransaction.amount.toLocaleString('fr-FR')} FCFA\n`
+                + `*Date :* ${lastTransaction.date}\n\n`
+                + `Merci ! Votre accès est désormais actif.`;
+
+            window.open("https://wa.me/?text=" + encodeURIComponent(msg), '_blank');
+        }
+
+        function sendEmailReceipt() {
+            if (!lastTransaction) return;
+            let subject = encodeURIComponent(`Reçu StockPro #${lastTransaction.id}`);
+            let body = encodeURIComponent(
+                `Bonjour ${lastTransaction.client},\n\n`
+                + `Votre paiement pour l'abonnement StockPro a bien été validé vers le compte marchand (${lastTransaction.destination}) :\n\n`
+                + `- Formule : ${lastTransaction.plan}\n`
+                + `- Montant : ${lastTransaction.amount.toLocaleString('fr-FR')} FCFA\n`
+                + `- Moyen : ${lastTransaction.method}\n`
+                + `- Date : ${lastTransaction.date}\n\n`
+                + `Cordialement,\nL'équipe StockPro Entreprise`
+            );
+            window.location.href = `mailto:${lastTransaction.email}?subject=${subject}&body=${body}`;
+        }
+
+        function handleFooterContact(e) {
+            e.preventDefault();
+            alert("Votre message a été transmis avec succès à l'équipe support StockPro.");
+            e.target.reset();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
